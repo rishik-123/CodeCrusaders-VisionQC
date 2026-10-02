@@ -256,6 +256,17 @@ button {
   right: auto;
 }
 
+.dd-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dd-user-info strong { color: var(--heading); }
+.dd-user-info small { color: var(--muted); font-size: 12px; }
+
 .dd-item {
   display: flex;
   align-items: center;
@@ -334,6 +345,19 @@ button {
   font-size: 18px;
   width: 22px;
   text-align: center;
+}
+
+.user-links button.sidebar-logout {
+  padding: 0;
+  border: 0;
+  color: #c8c8c8;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.user-links button.sidebar-logout:hover {
+  color: var(--orange);
 }
 
 .user-links a:hover {

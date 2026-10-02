@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const menu = [
   { items: [{ to: '/dashboard', icon: 'fas fa-home', label: 'Dashboard' }] },
@@ -32,19 +33,25 @@ const menu = [
 ];
 
 export default function Sidebar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    try { await logout(); }
+    finally { navigate('/login', { replace: true }); }
+  };
   const [closed, setClosed] = useState({});
   const toggle = (h) => setClosed((c) => ({ ...c, [h]: !c[h] }));
 
   return (
     <aside className="sidebar">
       <div className="user-block">
-        <span className="avatar avatar-80">HF</span>
-        <div className="user-name">Henry Foster</div>
+        <span className="avatar avatar-80">{user?.username?.slice(0, 2).toUpperCase() || 'U'}</span>
+        <div className="user-name">{user?.username || 'VisionQC User'}</div>
         <div className="user-links">
           <a href="#profile" title="Profile"><i className="fas fa-user" /></a>
           <a href="#lock" title="Lock"><i className="fas fa-lock" /></a>
           <a href="#feedback" title="Feedback"><i className="fas fa-envelope" /></a>
-          <a href="#logout" title="Logout"><i className="fas fa-sign-out-alt" /></a>
+          <button type="button" className="sidebar-logout" onClick={handleLogout} title="Logout" aria-label="Logout"><i className="fas fa-sign-out-alt" /></button>
         </div>
       </div>
 

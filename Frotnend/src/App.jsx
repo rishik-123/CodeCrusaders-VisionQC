@@ -1,62 +1,62 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
 import Footer from './components/layout/Footer';
 import Breadcrumbs from './components/layout/Breadcrumbs';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductSetupPage from './pages/ProductSetupPage';
-
-// Temporary stand-in until each page is rebuilt, one step at a time
-const Placeholder = ({ title }) => (
-  <>
-    <Breadcrumbs title={title} />
-    <div className="page-body">
-      <div className="card"><div className="placeholder">{title} is coming in the next step.</div></div>
-    </div>
-  </>
-);
+import './App.css';
 
 const routes = [
-  ['/setup/references', 'Reference Images'],
-  ['/setup/training', 'Learn Normal'],
-  ['/inspection', 'Live Inspection'],
-  ['/inspection/:id', 'Inspection Result'],
-  ['/history', 'Inspection History'],
-  ['/products/:id/settings', 'Product Settings'],
-  ['/insights', 'Quality Insights'],
-  ['/copilot', 'AI Copilot'],
+  ['/setup/references', 'Reference Images'], ['/setup/training', 'Learn Normal'],
+  ['/inspection', 'Live Inspection'], ['/inspection/:id', 'Inspection Result'],
+  ['/history', 'Inspection History'], ['/products/:id/settings', 'Product Settings'],
+  ['/insights', 'Quality Insights'], ['/copilot', 'AI Copilot'],
 ];
 
-export default function App() {
+function Placeholder({ title }) {
+  return <><Breadcrumbs title={title} /><div className="page-body"><div className="card"><div className="placeholder">{title} is coming in the next step.</div></div></div></>;
+}
+
+function AuthRedirect() {
+  const { loading, isAuthenticated } = useAuth();
+  if (loading) return <main className="auth-loading" role="status">Checking your VisionQC session…</main>;
+  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+}
+
+function DashboardShell() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const toggle = () => {
-    if (window.innerWidth < 992) setMobileOpen((o) => !o);
-    else setCollapsed((c) => !c);
+    if (window.innerWidth < 992) setMobileOpen((open) => !open);
+    else setCollapsed((value) => !value);
   };
+  return <div className={`app ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+    <Navbar onToggle={toggle} />
+    <Sidebar />
+    <div className="overlay" onClick={() => setMobileOpen(false)} />
+    <div className="main" onClick={() => mobileOpen && setMobileOpen(false)}>
+      <div className="content"><Routes>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/setup" element={<ProductSetupPage />} />
+        {routes.map(([path, title]) => <Route key={path} path={path} element={<Placeholder title={title} />} />)}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes></div>
+      <Footer />
+    </div>
+  </div>;
+}
 
-  return (
-    <BrowserRouter>
-      <div className={`app ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
-        <Navbar onToggle={toggle} />
-        <Sidebar />
-        <div className="overlay" onClick={() => setMobileOpen(false)} />
-        <div className="main" onClick={() => mobileOpen && setMobileOpen(false)}>
-          <div className="content">
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/setup" element={<ProductSetupPage />} />
-              {routes.map(([path, title]) => (
-                <Route key={path} path={path} element={<Placeholder title={title} />} />
-              ))}
-            </Routes>
-          </div>
-          <Footer />
-        </div>
-      </div>
-    </BrowserRouter>
-  );
+export default function App() {
+  return <BrowserRouter><AuthProvider><Routes>
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/register" element={<RegisterPage />} />
+    <Route element={<ProtectedRoute />}><Route path="/*" element={<DashboardShell />} /></Route>
+    <Route path="*" element={<AuthRedirect />} />
+  </Routes></AuthProvider></BrowserRouter>;
 }

@@ -9,10 +9,12 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "express-session": "^1.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

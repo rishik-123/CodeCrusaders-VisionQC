@@ -1,9 +1,18 @@
 import { useState } from 'react';
 import { Dropdown, DropdownItem, DropdownDivider } from '../common/UIComponents';
 import { products } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function Navbar({ onToggle }) {
   const [product, setProduct] = useState(products[0]);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try { await logout(); }
+    finally { navigate('/login', { replace: true }); }
+  };
 
   return (
     <header className="navbar">
@@ -50,18 +59,19 @@ export default function Navbar({ onToggle }) {
           trigger={
             <button type="button" className="nav-btn">
               <span className="avatar-wrap">
-                <span className="avatar avatar-50">HF</span>
+                <span className="avatar avatar-50">{user?.username?.slice(0, 2).toUpperCase() || 'U'}</span>
                 <span className="online" />
               </span>
-              <span className="user-label">Henry Foster</span>
+              <span className="user-label">{user?.username || 'Account'}</span>
               <i className="fas fa-chevron-down" style={{ fontSize: 10 }} />
             </button>
           }
         >
+          <div className="dd-user-info"><strong>{user?.username}</strong><small>{user?.email}</small></div>
           <DropdownItem icon="far fa-user">Profile</DropdownItem>
           <DropdownItem icon="fas fa-cog">Settings</DropdownItem>
           <DropdownDivider />
-          <DropdownItem icon="fas fa-sign-out-alt">Logout</DropdownItem>
+          <DropdownItem icon="fas fa-sign-out-alt" onClick={handleLogout}>Logout</DropdownItem>
         </Dropdown>
       </div>
     </header>

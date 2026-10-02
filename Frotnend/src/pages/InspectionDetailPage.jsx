@@ -13,7 +13,7 @@ export default function InspectionDetailPage({ addToast }) {
 
   const inspection = inspections.find((ins) => ins.id === Number(id)) || inspections[0];
 
-  const handleSaveFeedback = (data) => {
+  const handleSaveFeedback = () => {
     if (addToast) addToast('Operator feedback saved successfully!', 'success');
   };
 

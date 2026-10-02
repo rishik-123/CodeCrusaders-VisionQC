@@ -229,6 +229,8 @@ VITE_API_BASE_URL=http://localhost:5000/api
 - **Devam Pithadia**
 
 ---
+## Team name
+- **CodeCrusaders**
 
 ## 📄 License & Attribution
 Developed for **TechForge VisionQC** manufacturing automation and defect intelligence.  

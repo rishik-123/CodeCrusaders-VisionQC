@@ -66,24 +66,20 @@ def run_webcam_inspection(
         x2 = x1 + roi_size
         y2 = y1 + roi_size
 
-        # Draw Industrial Inspection Reticle (Corner Brackets)
+        # Draw Industrial Circular Cap Inspection Reticle
         if use_roi:
-            bracket_len = 25
+            cx, cy = w // 2, h // 2
+            r = int(roi_size * 0.44)
             c_reticle = (0, 220, 255)
-            thick = 2
-            # Top-Left
-            cv2.line(display_frame, (x1, y1), (x1 + bracket_len, y1), c_reticle, thick)
-            cv2.line(display_frame, (x1, y1), (x1, y1 + bracket_len), c_reticle, thick)
-            # Top-Right
-            cv2.line(display_frame, (x2, y1), (x2 - bracket_len, y1), c_reticle, thick)
-            cv2.line(display_frame, (x2, y1), (x2, y1 + bracket_len), c_reticle, thick)
-            # Bottom-Left
-            cv2.line(display_frame, (x1, y2), (x1 + bracket_len, y2), c_reticle, thick)
-            cv2.line(display_frame, (x1, y2), (x1, y2 - bracket_len), c_reticle, thick)
-            # Bottom-Right
-            cv2.line(display_frame, (x2, y2), (x2 - bracket_len, y2), c_reticle, thick)
-            cv2.line(display_frame, (x2, y2), (x2, y2 - bracket_len), c_reticle, thick)
-            cv2.putText(display_frame, "INSPECTION ZONE", (x1 + 10, y1 + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.5, c_reticle, 1)
+            # Center target circle
+            cv2.circle(display_frame, (cx, cy), r, c_reticle, 2)
+            # Alignment ticks (top, bottom, left, right)
+            tick = 12
+            cv2.line(display_frame, (cx, cy - r - tick), (cx, cy - r + tick), c_reticle, 2)
+            cv2.line(display_frame, (cx, cy + r - tick), (cx, cy + r + tick), c_reticle, 2)
+            cv2.line(display_frame, (cx - r - tick, cy), (cx - r + tick, cy), c_reticle, 2)
+            cv2.line(display_frame, (cx + r - tick, cy), (cx + r + tick, cy), c_reticle, 2)
+            cv2.putText(display_frame, "CIRCULAR CAP ZONE", (cx - 75, cy - r - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.48, c_reticle, 1)
 
         # Header HUD
         status_text = f"VisionQC | Thresh: {threshold:.1f} | [SPACE]=Inspect | [R]=ROI Mode | [+/-]=Thresh | [Q]=Quit"

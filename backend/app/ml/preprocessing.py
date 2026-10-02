@@ -63,8 +63,8 @@ def validate_image_file(file_path: Union[str, os.PathLike]) -> Image.Image:
 
 def filter_handheld_artifacts(img: Image.Image) -> Image.Image:
     """
-    Applies adaptive luminance equalization (CLAHE) and perimeter finger/skin suppression.
-    Allows users to hold products in their hands with light reflections without false alarms.
+    Isolates the circular bottle or bottle cap, masking out all hands, fingers,
+    and external background clutter outside the circular product area.
     """
     try:
         import cv2
@@ -79,27 +79,33 @@ def filter_handheld_artifacts(img: Image.Image) -> Image.Image:
         lab_eq = cv2.merge((l_eq, a, b))
         norm_rgb = cv2.cvtColor(lab_eq, cv2.COLOR_LAB2RGB)
 
-        # 2. Hand & Finger Suppression: detect skin tones at outer perimeter
+        # 2. Dual-Space Skin & Hand Detection (YCrCb + HSV)
+        ycrcb = cv2.cvtColor(norm_rgb, cv2.COLOR_RGB2YCrCb)
+        skin_ycrcb = cv2.inRange(ycrcb, np.array([0, 133, 77], dtype=np.uint8), np.array([255, 173, 127], dtype=np.uint8))
+
         hsv = cv2.cvtColor(norm_rgb, cv2.COLOR_RGB2HSV)
-        lower_skin = np.array([0, 18, 45], dtype=np.uint8)
-        upper_skin = np.array([28, 255, 255], dtype=np.uint8)
-        skin_mask = cv2.inRange(hsv, lower_skin, upper_skin)
+        skin_hsv = cv2.inRange(hsv, np.array([0, 15, 40], dtype=np.uint8), np.array([28, 255, 255], dtype=np.uint8))
+        skin_mask = cv2.bitwise_or(skin_ycrcb, skin_hsv)
 
-        edge_mask = np.zeros((h, w), dtype=np.uint8)
-        margin = int(min(h, w) * 0.22)
-        edge_mask[:margin, :] = 255
-        edge_mask[-margin:, :] = 255
-        edge_mask[:, :margin] = 255
-        edge_mask[:, -margin:] = 255
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        skin_mask = cv2.dilate(skin_mask, kernel, iterations=2)
 
-        finger_mask = cv2.bitwise_and(skin_mask, edge_mask)
-        finger_mask = cv2.GaussianBlur(finger_mask, (21, 21), 0)
+        # 3. Circular Bottle/Cap Region of Interest (Mask outer circle)
+        center_x, center_y = w // 2, h // 2
+        radius = int(min(h, w) * 0.44)
+        circle_mask = np.zeros((h, w), dtype=np.uint8)
+        cv2.circle(circle_mask, (center_x, center_y), radius, 255, -1)
 
-        mean_val = np.mean(norm_rgb, axis=(0, 1))
-        weight = (finger_mask.astype(np.float32) / 255.0)[:, :, np.newaxis]
-        cleaned = (norm_rgb * (1.0 - weight) + mean_val * weight).astype(np.uint8)
+        # Valid product area is inside the circular zone AND not skin/hand
+        product_mask = cv2.bitwise_and(circle_mask, cv2.bitwise_not(skin_mask))
+        product_mask = cv2.GaussianBlur(product_mask, (11, 11), 0)
 
-        return Image.fromarray(cleaned)
+        # 4. Fill all non-product areas with neutral studio background (245, 245, 245)
+        clean_bg = np.full_like(norm_rgb, 245)
+        weight = (product_mask.astype(np.float32) / 255.0)[:, :, np.newaxis]
+        isolated = (norm_rgb * weight + clean_bg * (1.0 - weight)).astype(np.uint8)
+
+        return Image.fromarray(isolated)
     except Exception:
         return img
 

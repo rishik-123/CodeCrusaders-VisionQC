@@ -20,7 +20,6 @@ from backend.app.database.database import init_db
 from backend.app.database.repositories import ProductRepository
 
 ALL_PRODUCTS = [
-    "bottle",
     "cable",
     "capsule",
     "carpet",

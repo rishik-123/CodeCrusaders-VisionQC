@@ -1,0 +1,28 @@
+:root {
+  --primary: #2f80ed;
+  --success: #2ecc71;
+  --warning: #f5a623;
+  --danger: #e74c3c;
+  --info: #3cb8e6;
+
+  --sidebar-bg: #2a3042;
+  --sidebar-active: #323a50;
+  --sidebar-text: #a6b0cf;
+
+  --navbar-bg: #ffffff;
+  --page-bg: #f4f6f9;
+  --card-bg: #ffffff;
+  --border: #e9ecef;
+
+  --heading: #2b2f3a;
+  --text: #5a6272;
+  --muted: #9aa3b2;
+
+  /* Derived */
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 70px;
+  --navbar-height: 60px;
+  --border-radius: 4px;
+  --shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --transition: 0.3s ease;
+}

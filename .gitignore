@@ -1,3 +1,29 @@
+# Environments
 venv/
 .venv/
 env/
+.env
+
+# Datasets and Large Media
+datasets/
+/datasets
+
+# Models and Checkpoints (>100MB exceeds GitHub limits)
+models/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+
+# Generated Results & Uploads
+results/
+uploads/
+*.db
+*.db-wal
+*.db-shm
+
+# Python Caches & Testing
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage

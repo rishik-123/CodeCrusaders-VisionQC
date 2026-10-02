@@ -1,0 +1,15 @@
+seed_everything: 42
+
+model:
+  class_path: anomalib.models.Patchcore
+
+data:
+  class_path: anomalib.data.MVTecAD
+  init_args:
+    root: ./datasets
+    category: toothbrush
+    num_workers: 0
+
+trainer:
+  max_epochs: 1
+  accelerator: auto

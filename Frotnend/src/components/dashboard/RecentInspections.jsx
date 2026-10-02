@@ -1,44 +1,39 @@
 import { Link } from 'react-router-dom';
 import Card from '../common/Card';
-import { inspections } from '../../data/mockData';
-import { formatTime } from '../../utils/helpers';
+import { Badge } from '../common/UIComponents';
+import { recentInspections } from '../../data/mockData';
 
 export default function RecentInspections() {
-  const recent = inspections.slice(0, 8);
-
   return (
-    <Card title="Recent Inspections">
-      <div className="table-wrapper">
+    <Card title="Recent Inspections" flush>
+      <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
-              <th>Time</th>
+              <th>Image</th>
+              <th>Inspection ID</th>
               <th>Product</th>
               <th>Score</th>
               <th>Threshold</th>
               <th>Result</th>
-              <th></th>
+              <th />
             </tr>
           </thead>
           <tbody>
-            {recent.map((ins) => (
-              <tr key={ins.id}>
-                <td>{formatTime(ins.time)}</td>
-                <td>{ins.product}</td>
-                <td>{ins.score}</td>
-                <td>{ins.threshold}</td>
-                <td>
-                  <span className={`badge ${ins.result === 'PASS' ? 'badge-pass' : 'badge-fail'}`}>
-                    {ins.result}
-                  </span>
-                </td>
-                <td>
-                  <Link to={`/inspection/${ins.id}`} className="btn btn-sm btn-outline">
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {recentInspections.map((r) => {
+              const fail = r.score > r.threshold;
+              return (
+                <tr key={r.id}>
+                  <td><div className="thumb"><i className="far fa-image" /></div></td>
+                  <td>{r.id}</td>
+                  <td>{r.product}</td>
+                  <td>{r.score.toFixed(2)}</td>
+                  <td>{r.threshold.toFixed(2)}</td>
+                  <td><Badge type={fail ? 'danger' : 'success'}>{fail ? 'FAIL' : 'PASS'}</Badge></td>
+                  <td><Link to={`/inspection/${r.id}`}>View</Link></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

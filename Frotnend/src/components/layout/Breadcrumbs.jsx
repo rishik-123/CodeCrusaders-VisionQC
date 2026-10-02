@@ -1,21 +1,27 @@
-import { Link } from 'react-router-dom';
+import { MiniBars } from '../common/UIComponents';
 
-export default function Breadcrumbs({ items }) {
-  if (!items || items.length === 0) return null;
-
+// Page-title band: title + breadcrumb on the left, optional bar-chart stats on the right
+export default function Breadcrumbs({ title, trail = [], stats = [] }) {
   return (
-    <div className="breadcrumbs">
-      <Link to="/dashboard">Dashboard</Link>
-      {items.map((item, idx) => (
-        <span key={idx}>
-          <span className="sep"><i className="fas fa-chevron-right"></i></span>
-          {idx === items.length - 1 ? (
-            <span className="current">{item.label}</span>
-          ) : (
-            <Link to={item.path}>{item.label}</Link>
-          )}
-        </span>
-      ))}
+    <div className="page-header">
+      <div>
+        <h1 className="page-title">{title}</h1>
+        <div className="crumbs">{[...trail, title].join(' / ')}</div>
+      </div>
+
+      {stats.length > 0 && (
+        <div className="page-stats">
+          {stats.map((s) => (
+            <div className="page-stat" key={s.label}>
+              <div>
+                <div className="page-stat-label">{s.label}</div>
+                <div className="page-stat-value" style={{ color: s.color }}>{s.value}</div>
+              </div>
+              <MiniBars data={s.data} color={s.color} width={70} height={38} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

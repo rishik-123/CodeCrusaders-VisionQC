@@ -1,28 +1,40 @@
 :root {
-  --primary: #2f80ed;
-  --success: #2ecc71;
-  --warning: #f5a623;
-  --danger: #e74c3c;
-  --info: #3cb8e6;
+  /* Colours sampled from the DAdmin screenshot */
+  --primary: #2bb3c0;
+  /* cyan: badges, notification dots, links */
+  --teal: #009378;
+  /* teal: positive numbers, PASS */
+  --orange: #e16123;
+  /* orange: titles, sidebar headings, FAIL */
+  --success: #009378;
+  --warning: #e16123;
+  --danger: #e16123;
+  --info: #2bb3c0;
 
-  --sidebar-bg: #2a3042;
-  --sidebar-active: #323a50;
-  --sidebar-text: #a6b0cf;
+  --sidebar-logo: #1c2324;
+  --sidebar-profile: #141414;
+  --sidebar-bg: #1c2324;
+  --sidebar-active: #232929;
+  --sidebar-border: #353535;
+  --sidebar-text: #999999;
 
   --navbar-bg: #ffffff;
-  --page-bg: #f4f6f9;
+  --header-bg: #f4f4f4;
+  /* page-title band */
+  --page-bg: #ebebea;
   --card-bg: #ffffff;
-  --border: #e9ecef;
+  --card-dark: #252525;
+  /* dark top of stat cards */
+  --border: #ececec;
 
-  --heading: #2b2f3a;
-  --text: #5a6272;
-  --muted: #9aa3b2;
+  --heading: #393939;
+  --text: #555555;
+  --muted: #888888;
 
-  /* Derived */
-  --sidebar-width: 260px;
-  --sidebar-collapsed-width: 70px;
-  --navbar-height: 60px;
-  --border-radius: 4px;
-  --shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-  --transition: 0.3s ease;
+  --font: 'Open Sans', sans-serif;
+
+  /* Sizes (CSS px, measured from the screenshot at 150% scale) */
+  --navbar-h: 88px;
+  --sidebar-w: 270px;
+  --sidebar-w-c: 70px;
 }

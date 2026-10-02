@@ -1,0 +1,30 @@
+{
+  "product": "hazelnut",
+  "threshold": 54.4468,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 0.9929,
+    "precision": 0.9859,
+    "recall": 1.0,
+    "accuracy": 0.9909,
+    "specificity": 0.975,
+    "image_auroc": 0.9989,
+    "tp": 70,
+    "tn": 39,
+    "fp": 1,
+    "fn": 0
+  },
+  "score_range": {
+    "min": 42.67802810668945,
+    "max": 86.86637878417969,
+    "good_min": 42.67802810668945,
+    "good_max": 57.23152160644531,
+    "defect_min": 55.00628662109375,
+    "defect_max": 86.86637878417969
+  },
+  "sample_counts": {
+    "validation_good": 40,
+    "validation_defective": 70
+  },
+  "created_at": "2026-10-02T11:18:46.146780"
+}

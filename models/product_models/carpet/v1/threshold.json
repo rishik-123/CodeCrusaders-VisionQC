@@ -1,0 +1,30 @@
+{
+  "product": "carpet",
+  "threshold": 37.7728,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 0.9655,
+    "precision": 0.9882,
+    "recall": 0.9438,
+    "accuracy": 0.9487,
+    "specificity": 0.9643,
+    "image_auroc": 0.9783,
+    "tp": 84,
+    "tn": 27,
+    "fp": 1,
+    "fn": 5
+  },
+  "score_range": {
+    "min": 28.76519012451172,
+    "max": 73.57791900634766,
+    "good_min": 28.76519012451172,
+    "good_max": 39.593177795410156,
+    "defect_min": 30.31386375427246,
+    "defect_max": 73.57791900634766
+  },
+  "sample_counts": {
+    "validation_good": 28,
+    "validation_defective": 89
+  },
+  "created_at": "2026-10-02T11:17:20.474645"
+}

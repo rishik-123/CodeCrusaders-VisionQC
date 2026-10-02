@@ -1,0 +1,30 @@
+{
+  "product": "cable",
+  "threshold": 50.1434,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 0.8901,
+    "precision": 0.8586,
+    "recall": 0.9239,
+    "accuracy": 0.86,
+    "specificity": 0.7586,
+    "image_auroc": 0.9335,
+    "tp": 85,
+    "tn": 44,
+    "fp": 14,
+    "fn": 7
+  },
+  "score_range": {
+    "min": 44.051448822021484,
+    "max": 83.1578369140625,
+    "good_min": 44.051448822021484,
+    "good_max": 56.05223083496094,
+    "defect_min": 47.540409088134766,
+    "defect_max": 83.1578369140625
+  },
+  "sample_counts": {
+    "validation_good": 58,
+    "validation_defective": 92
+  },
+  "created_at": "2026-10-02T11:15:15.530546"
+}

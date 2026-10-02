@@ -1,0 +1,27 @@
+{
+  "product": "bottle",
+  "model_type": "PatchCore",
+  "anomalib_version": "2.6.2",
+  "pytorch_version": "2.14.1+cpu",
+  "backbone": "wide_resnet50_2",
+  "coreset_sampling_ratio": 0.1,
+  "reference_count": 25,
+  "model_version": "v1",
+  "training_duration_seconds": 47.09,
+  "created_at": "2026-10-02T08:12:11.145175",
+  "image_preprocessing": {
+    "resize": [
+      256,
+      256
+    ],
+    "center_crop": [
+      224,
+      224
+    ],
+    "normalization": "imagenet"
+  },
+  "feature_extractor": "timm/wide_resnet50_2",
+  "checkpoint_path": "models\\product_models\\bottle\\v1\\model.ckpt",
+  "threshold": 39.3911,
+  "updated_at": "2026-10-02T11:13:59.410634"
+}

@@ -1,0 +1,11 @@
+{
+  "product": "toothbrush",
+  "model_type": "PatchCore",
+  "backbone": "wide_resnet50_2",
+  "model_version": "v1",
+  "checkpoint_path": "C:\\Users\\Abcom\\OneDrive\\Desktop\\SLA AND PROJECTS\\Techforge_VisionQC\\models\\product_models\\toothbrush\\v1\\model.ckpt",
+  "threshold": 36.2796,
+  "reference_count": 25,
+  "created_at": "2026-10-02T10:29:25.247304",
+  "updated_at": "2026-10-02T11:24:28.142827"
+}

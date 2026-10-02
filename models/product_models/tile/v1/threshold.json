@@ -1,0 +1,30 @@
+{
+  "product": "tile",
+  "threshold": 41.2764,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "accuracy": 1.0,
+    "specificity": 1.0,
+    "image_auroc": 1.0,
+    "tp": 84,
+    "tn": 33,
+    "fp": 0,
+    "fn": 0
+  },
+  "score_range": {
+    "min": 32.87040710449219,
+    "max": 86.83158111572266,
+    "good_min": 32.87040710449219,
+    "good_max": 40.69704055786133,
+    "defect_min": 41.631675720214844,
+    "defect_max": 86.83158111572266
+  },
+  "sample_counts": {
+    "validation_good": 33,
+    "validation_defective": 84
+  },
+  "created_at": "2026-10-02T11:24:05.725328"
+}

@@ -1,0 +1,135 @@
+# ==============================================================================
+# VisionQC Comprehensive .gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Node.js & Frontend (Vite / React)
+# ------------------------------------------------------------------------------
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+Frotnend/dist/
+Frotnend/dist-ssr/
+dist/
+build/
+.next/
+out/
+
+# ------------------------------------------------------------------------------
+# Python & Machine Learning
+# ------------------------------------------------------------------------------
+.venv/
+*/.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*/__pycache__/
+*/**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# Large Model Weights & Archives (>100MB blocked by GitHub)
+*.ckpt
+*.pth
+*.pt
+*.bin
+*.onnx
+*.tar.gz
+*.tar.xz
+*.zip
+models/**/*.ckpt
+models/temp_calib/
+models/temp_test/
+results/
+datasets/
+
+# ------------------------------------------------------------------------------
+# Environment Variables & Secrets
+# ------------------------------------------------------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+Frotnend/.env
+
+# ------------------------------------------------------------------------------
+# Temporary Uploads, Caches & Generated Media
+# ------------------------------------------------------------------------------
+uploads/
+*/uploads/
+*/**/uploads/
+results/
+scratch/
+tmp/
+temp/
+*.log
+logs/
+*.tmp
+
+# ------------------------------------------------------------------------------
+# SQLite Temporary Journal / WAL files
+# ------------------------------------------------------------------------------
+*.db-journal
+*.db-wal
+*.db-shm
+visionqc.db
+
+# ------------------------------------------------------------------------------
+# Operating System & IDE Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs & Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~

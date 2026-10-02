@@ -1,0 +1,11 @@
+{
+  "product": "pill",
+  "model_type": "PatchCore",
+  "backbone": "wide_resnet50_2",
+  "model_version": "v1",
+  "checkpoint_path": "C:\\Users\\Abcom\\OneDrive\\Desktop\\SLA AND PROJECTS\\Techforge_VisionQC\\models\\product_models\\pill\\v1\\model.ckpt",
+  "threshold": 38.6482,
+  "reference_count": 25,
+  "created_at": "2026-10-02T10:28:20.279274",
+  "updated_at": "2026-10-02T11:21:58.284655"
+}

@@ -1,0 +1,40 @@
+:root {
+  /* Colours sampled from the DAdmin screenshot */
+  --primary: #2bb3c0;
+  /* cyan: badges, notification dots, links */
+  --teal: #009378;
+  /* teal: positive numbers, PASS */
+  --orange: #e16123;
+  /* orange: titles, sidebar headings, FAIL */
+  --success: #009378;
+  --warning: #e16123;
+  --danger: #e16123;
+  --info: #2bb3c0;
+
+  --sidebar-logo: #1c2324;
+  --sidebar-profile: #141414;
+  --sidebar-bg: #1c2324;
+  --sidebar-active: #232929;
+  --sidebar-border: #353535;
+  --sidebar-text: #999999;
+
+  --navbar-bg: #ffffff;
+  --header-bg: #f4f4f4;
+  /* page-title band */
+  --page-bg: #ebebea;
+  --card-bg: #ffffff;
+  --card-dark: #252525;
+  /* dark top of stat cards */
+  --border: #ececec;
+
+  --heading: #393939;
+  --text: #555555;
+  --muted: #888888;
+
+  --font: 'Open Sans', sans-serif;
+
+  /* Sizes (CSS px, measured from the screenshot at 150% scale) */
+  --navbar-h: 88px;
+  --sidebar-w: 270px;
+  --sidebar-w-c: 70px;
+}

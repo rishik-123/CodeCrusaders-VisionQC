@@ -1,0 +1,30 @@
+{
+  "product": "toothbrush",
+  "threshold": 36.2796,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 0.8824,
+    "precision": 0.7895,
+    "recall": 1.0,
+    "accuracy": 0.8095,
+    "specificity": 0.3333,
+    "image_auroc": 0.825,
+    "tp": 30,
+    "tn": 4,
+    "fp": 8,
+    "fn": 0
+  },
+  "score_range": {
+    "min": 34.08796310424805,
+    "max": 77.70213317871094,
+    "good_min": 34.08796310424805,
+    "good_max": 50.39131546020508,
+    "defect_min": 36.59183120727539,
+    "defect_max": 77.70213317871094
+  },
+  "sample_counts": {
+    "validation_good": 12,
+    "validation_defective": 30
+  },
+  "created_at": "2026-10-02T11:24:28.141864"
+}

@@ -1,0 +1,30 @@
+{
+  "product": "screw",
+  "threshold": 40.0104,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 0.8718,
+    "precision": 0.7727,
+    "recall": 1.0,
+    "accuracy": 0.7812,
+    "specificity": 0.1463,
+    "image_auroc": 0.6854,
+    "tp": 119,
+    "tn": 6,
+    "fp": 35,
+    "fn": 0
+  },
+  "score_range": {
+    "min": 38.991798400878906,
+    "max": 57.41923141479492,
+    "good_min": 38.991798400878906,
+    "good_max": 54.948081970214844,
+    "defect_min": 40.095359802246094,
+    "defect_max": 57.41923141479492
+  },
+  "sample_counts": {
+    "validation_good": 41,
+    "validation_defective": 119
+  },
+  "created_at": "2026-10-02T11:23:10.690092"
+}

@@ -1,0 +1,13 @@
+# Terminal 1 — Python ML Service (Port 8000)
+.\.venv\Scripts\uvicorn.exe main:app --app-dir backend/python_service --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 2 — Node.js Express Gateway (Port 5000)
+cd backend
+node --watch server.js
+
+# Terminal 3 — Frontend UI (Port 5173)
+cd Frotnend
+npm run dev
+
+# Terminal 4 — Ollama AI Copilot
+ollama run qwen3:8b

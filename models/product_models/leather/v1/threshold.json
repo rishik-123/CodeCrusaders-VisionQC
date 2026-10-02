@@ -1,0 +1,30 @@
+{
+  "product": "leather",
+  "threshold": 36.1029,
+  "selection_method": "max_f1_balanced_accuracy_midpoint",
+  "validation_metrics": {
+    "f1": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "accuracy": 1.0,
+    "specificity": 1.0,
+    "image_auroc": 1.0,
+    "tp": 92,
+    "tn": 32,
+    "fp": 0,
+    "fn": 0
+  },
+  "score_range": {
+    "min": 28.4416561126709,
+    "max": 87.0795669555664,
+    "good_min": 28.4416561126709,
+    "good_max": 32.27946472167969,
+    "defect_min": 39.44758224487305,
+    "defect_max": 87.0795669555664
+  },
+  "sample_counts": {
+    "validation_good": 32,
+    "validation_defective": 92
+  },
+  "created_at": "2026-10-02T11:19:51.052440"
+}

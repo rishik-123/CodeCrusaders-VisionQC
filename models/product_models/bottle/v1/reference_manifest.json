@@ -1,0 +1,33 @@
+{
+  "product": "bottle",
+  "version": "v1",
+  "reference_count": 25,
+  "reference_images": [
+    "ref_000.png",
+    "ref_001.png",
+    "ref_002.png",
+    "ref_003.png",
+    "ref_004.png",
+    "ref_005.png",
+    "ref_006.png",
+    "ref_007.png",
+    "ref_008.png",
+    "ref_009.png",
+    "ref_010.png",
+    "ref_011.png",
+    "ref_012.png",
+    "ref_013.png",
+    "ref_014.png",
+    "ref_015.png",
+    "ref_016.png",
+    "ref_017.png",
+    "ref_018.png",
+    "ref_019.png",
+    "ref_020.png",
+    "ref_021.png",
+    "ref_022.png",
+    "ref_023.png",
+    "ref_024.png"
+  ],
+  "created_at": "2026-10-02T08:11:03.758431"
+}

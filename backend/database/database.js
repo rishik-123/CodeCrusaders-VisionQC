@@ -40,11 +40,38 @@ db.exec(`
   ON sessions(expired_at);
 `);
 
+// PRODUCTS TABLE
+db.exec(`
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name TEXT NOT NULL,
+    product_type TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    manufacturer TEXT,
+    description TEXT,
+    material TEXT,
+    length REAL,
+    width REAL,
+    height REAL,
+    dimension_unit TEXT NOT NULL DEFAULT 'mm',
+    product_color TEXT,
+    user_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (user_id, product_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_products_user_created
+  ON products(user_id, created_at DESC);
+`);
+
 console.log("==================================================");
 console.log("[SQLite] Connected to database:");
 console.log(databasePath);
 console.log("[SQLite] Users table initialized");
 console.log("[SQLite] Sessions table initialized");
+console.log("[SQLite] Products table initialized");
 console.log("==================================================");
 
 export { db };

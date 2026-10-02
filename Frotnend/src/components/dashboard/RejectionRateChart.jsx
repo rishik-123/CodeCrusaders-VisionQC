@@ -1,31 +1,26 @@
-import { useState } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import Card from '../common/Card';
-import { rejectionThisWeek, rejectionLastWeek } from '../../data/mockData';
 import { COLORS } from '../../utils/helpers';
 
-export default function RejectionRateChart() {
-  const [week, setWeek] = useState('this');
-  const data = week === 'this' ? rejectionThisWeek : rejectionLastWeek;
-
+export default function RejectionRateChart({ data }) {
+  const chartData = [{
+    period: 'Collections',
+    completed: data.find((item) => item.status === 'COMPLETE')?.count || 0,
+    inProgress: data.find((item) => item.status === 'IN_PROGRESS')?.count || 0,
+    cancelled: data.find((item) => item.status === 'CANCELLED')?.count || 0,
+  }];
   return (
-    <Card
-      title="Rejection Rate"
-      actions={
-        <select className="select-sm" value={week} onChange={(e) => setWeek(e.target.value)} aria-label="Period">
-          <option value="this">This Week</option>
-          <option value="last">Last Week</option>
-        </select>
-      }
-    >
+    <Card title="Collection Status">
       <div style={{ height: 330 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: -15 }}>
+          <BarChart data={chartData} margin={{ top: 5, right: 10, bottom: 0, left: -15 }}>
             <CartesianGrid stroke={COLORS.grid} vertical={false} />
-            <XAxis dataKey="day" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-            <YAxis unit="%" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-            <Tooltip formatter={(v) => [`${v}%`, 'Rejection']} />
-            <Bar dataKey="rate" fill={COLORS.danger} radius={[2, 2, 0, 0]} barSize={18} />
+            <XAxis dataKey="period" tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: COLORS.muted }} axisLine={false} tickLine={false} />
+            <Tooltip />
+            <Bar dataKey="completed" name="Complete" stackId="status" fill={COLORS.success} />
+            <Bar dataKey="inProgress" name="In progress" stackId="status" fill={COLORS.primary} />
+            <Bar dataKey="cancelled" name="Cancelled" stackId="status" fill={COLORS.danger} />
           </BarChart>
         </ResponsiveContainer>
       </div>

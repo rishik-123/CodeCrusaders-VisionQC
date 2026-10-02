@@ -267,6 +267,34 @@ button {
 .dd-user-info strong { color: var(--heading); }
 .dd-user-info small { color: var(--muted); font-size: 12px; }
 
+.toast-container {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 2000;
+  display: grid;
+  gap: 10px;
+  width: min(380px, calc(100vw - 36px));
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 15px;
+  color: #fff;
+  background: #333b3c;
+  border-left: 4px solid var(--primary);
+  border-radius: 4px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .2);
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+.toast span { flex: 1; }
+.toast-close { border: 0; color: inherit; background: transparent; cursor: pointer; }
+
 .dd-item {
   display: flex;
   align-items: center;

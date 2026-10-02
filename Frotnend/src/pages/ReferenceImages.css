@@ -1,0 +1,45 @@
+.reference-intro { margin: 0 0 22px; color: var(--muted); }
+.reference-product-select { display: grid; gap: 9px; max-width: 560px; }
+.reference-product-select label { color: var(--heading); font-weight: 600; }
+.reference-product-select select { min-height: 42px; font: inherit; }
+.reference-product-details { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.reference-product-details span { display: grid; gap: 3px; }
+.reference-product-details small { color: var(--muted); font-size: 12px; }
+.reference-product-details strong { color: var(--heading); font-size: 14px; overflow-wrap: anywhere; }
+.reference-empty { padding: 18px; border: 1px dashed var(--border); border-radius: 4px; background: var(--header-bg); }
+.reference-empty a { font-weight: 600; }
+.reference-camera-placeholder { min-height: 310px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; border-radius: 4px; color: #e8eeee; background: #182021; text-align: center; }
+.reference-camera-placeholder i { color: var(--primary); font-size: 44px; }
+.reference-camera-placeholder span { color: #aab2b3; }
+.reference-video-wrap { position: relative; min-height: 260px; overflow: hidden; border-radius: 4px; background: #101515; }
+.reference-video { display: block; width: 100%; max-height: 460px; object-fit: contain; background: #101515; }
+.reference-canvas { display: none; }
+.reference-video-overlay { position: absolute; inset: 0; display: grid; align-content: center; justify-items: center; gap: 10px; color: #dce1e1; background: rgba(0,0,0,.7); }
+.reference-video-overlay i { font-size: 30px; }
+.reference-camera-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.reference-camera-actions .btn { min-height: 40px; }
+.reference-status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+.reference-status > i { color: var(--primary); font-size: 9px; }
+.reference-status.cancelled { color: var(--warning); }
+.reference-error { margin: 12px 0 0; color: var(--danger); }
+.reference-progress-head { display: flex; justify-content: space-between; gap: 10px; color: var(--heading); }
+.reference-progress-head span { font-weight: 700; }
+.reference-progress-product { margin: 13px 0; color: var(--muted); }
+.reference-progress-percent { margin: 11px 0 4px; color: var(--heading); font-weight: 600; }
+.reference-progress-note { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+.reference-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.reference-slot { position: relative; display: flex; min-width: 0; aspect-ratio: 1 / .82; align-items: center; justify-content: center; flex-direction: column; gap: 6px; overflow: hidden; border: 1px solid var(--border); border-radius: 4px; background: var(--header-bg); }
+.reference-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.reference-slot small { position: absolute; right: 0; bottom: 0; left: 0; padding: 4px; color: var(--muted); background: rgba(255,255,255,.9); font-size: 11px; text-align: center; }
+.reference-slot-number { color: #a4acad; font-size: 23px; font-weight: 600; }
+.reference-slot.capturing { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.reference-slot.failed { border-color: var(--danger); background: rgba(225,97,35,.08); }
+.reference-slot.failed small { color: var(--danger); }
+.reference-complete-summary { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px; border-radius: 4px; color: var(--success); background: rgba(0,147,120,.08); }
+.reference-complete-summary > i { font-size: 24px; }
+.reference-complete-summary div { display: grid; gap: 4px; }
+.reference-complete-summary span { color: var(--muted); font-size: 12px; }
+.reference-history-empty { color: var(--muted); }
+.reference-history-back { margin-top: 12px; }
+@media (max-width: 767px) { .reference-product-details { grid-template-columns: repeat(2, minmax(0, 1fr)); } .reference-slots { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; } .reference-video-wrap { min-height: 200px; } }
+@media (max-width: 420px) { .reference-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

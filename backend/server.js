@@ -3,6 +3,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import Database from "better-sqlite3";
 
 import { db } from "./database/database.js";
 
@@ -14,6 +20,9 @@ if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
 const PORT = process.env.PORT || 5000;
 const FRONTEND_URL =
   process.env.FRONTEND_URL || "http://localhost:5173";
+const PYTHON_SERVICE_URL = (process.env.PYTHON_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+const BACKEND_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REFERENCE_DATABASE_PATH = path.join(BACKEND_DIR, "database", "reference_images.db");
 
 // ------------------------------
 // MIDDLEWARE
@@ -378,6 +387,449 @@ app.post("/api/auth/logout", (req, res, next) => {
 });
 
 // ------------------------------
+// PRODUCTS
+// ------------------------------
+
+const PRODUCT_TYPES = new Set([
+  "bottle", "cable", "capsule", "carpet", "grid", "hazelnut", "leather",
+  "metal_nut", "MVtecAD", "pill", "screw", "tile", "toothbrush",
+  "transistor", "wood", "zipper",
+]);
+const DIMENSION_UNITS = new Set(["mm", "cm", "inches"]);
+const PRODUCT_COLUMNS = `id, product_name, product_type, product_id, manufacturer,
+  description, material, length, width, height, dimension_unit, product_color,
+  user_id, created_at, updated_at`;
+
+function validateProduct(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { error: "Product information is required" };
+  }
+  const product = {
+    product_name: typeof body.product_name === "string" ? body.product_name.trim() : "",
+    product_type: body.product_type,
+    product_id: typeof body.product_id === "string" ? body.product_id.trim() : "",
+    manufacturer: typeof body.manufacturer === "string" ? body.manufacturer.trim() : "",
+    description: typeof body.description === "string" ? body.description.trim() : "",
+    material: typeof body.material === "string" ? body.material.trim() : "",
+    product_color: typeof body.product_color === "string" ? body.product_color.trim() : "",
+    dimension_unit: body.dimension_unit ?? "mm",
+  };
+
+  if (!product.product_name || !product.product_id || !product.product_type) {
+    return { error: "Product name, type, and ID are required" };
+  }
+  if (!PRODUCT_TYPES.has(product.product_type)) {
+    return { error: "Select a supported product type" };
+  }
+  if (!DIMENSION_UNITS.has(product.dimension_unit)) {
+    return { error: "Select a valid dimension unit" };
+  }
+
+  for (const field of ["length", "width", "height"]) {
+    const value = body[field];
+    if (value === "" || value === null || value === undefined) {
+      product[field] = null;
+    } else {
+      const number = typeof value === "number" ? value : Number(value);
+      if (!Number.isFinite(number) || number <= 0) {
+        return { error: `Enter a valid ${field}` };
+      }
+      product[field] = number;
+    }
+  }
+
+  return { product };
+}
+
+function isProductIdConflict(error) {
+  return error?.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+    (error?.code === "SQLITE_CONSTRAINT_PRIMARYKEY" && error.message?.includes("products"));
+}
+
+app.post("/api/products", requireAuth, (req, res) => {
+  const { product, error } = validateProduct(req.body);
+  if (error) return res.status(400).json({ success: false, message: error });
+
+  try {
+    const result = db.prepare(`
+      INSERT INTO products (
+        product_name, product_type, product_id, manufacturer, description,
+        material, length, width, height, dimension_unit, product_color, user_id
+      ) VALUES (
+        @product_name, @product_type, @product_id, @manufacturer, @description,
+        @material, @length, @width, @height, @dimension_unit, @product_color, @user_id
+      )
+    `).run({ ...product, user_id: req.session.user.id });
+    const saved = db.prepare(`SELECT ${PRODUCT_COLUMNS} FROM products WHERE id = ? AND user_id = ?`)
+      .get(result.lastInsertRowid, req.session.user.id);
+    return res.status(201).json({ success: true, message: "Product created successfully", product: saved });
+  } catch (err) {
+    if (isProductIdConflict(err)) {
+      return res.status(409).json({ success: false, message: "This Product ID already exists" });
+    }
+    console.error("Product creation error:", err);
+    return res.status(500).json({ success: false, message: "Unable to save product" });
+  }
+});
+
+app.get("/api/products", requireAuth, (req, res) => {
+  try {
+    const products = db.prepare(`
+      SELECT ${PRODUCT_COLUMNS} FROM products
+      WHERE user_id = ? ORDER BY created_at DESC, id DESC
+    `).all(req.session.user.id);
+    return res.json({ success: true, products });
+  } catch (err) {
+    console.error("Product listing error:", err);
+    return res.status(500).json({ success: false, message: "Unable to load products" });
+  }
+});
+
+app.get("/api/dashboard", requireAuth, (req, res) => {
+  try {
+    const userId = req.session.user.id;
+    const products = db.prepare(`
+      SELECT id, product_name, product_type, product_id, created_at
+      FROM products WHERE user_id = ? ORDER BY created_at DESC, id DESC
+    `).all(userId);
+    const productsById = new Map(products.map((product) => [product.id, product]));
+    const productTypes = db.prepare(`
+      SELECT product_type AS label, COUNT(*) AS count
+      FROM products WHERE user_id = ? GROUP BY product_type ORDER BY count DESC, label ASC
+    `).all(userId);
+
+    let sessions = [];
+    if (fs.existsSync(REFERENCE_DATABASE_PATH)) {
+      const referenceDb = new Database(REFERENCE_DATABASE_PATH, { readonly: true, fileMustExist: true });
+      try {
+        sessions = referenceDb.prepare(`
+          SELECT id, product_id, captured_images, total_images, status, created_at, completed_at
+          FROM reference_sessions WHERE user_id = ? ORDER BY created_at DESC
+        `).all(userId).map((session) => ({
+          ...session,
+          product_name: productsById.get(session.product_id)?.product_name || "Unknown product",
+        }));
+      } finally {
+        referenceDb.close();
+      }
+    }
+
+    const totalSessions = sessions.length;
+    const completedSessions = sessions.filter((session) => session.status === "COMPLETE").length;
+    const imagesCaptured = sessions.reduce((total, session) => total + session.captured_images, 0);
+    const dailyCollections = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date();
+      date.setUTCHours(0, 0, 0, 0);
+      date.setUTCDate(date.getUTCDate() - (6 - index));
+      const key = date.toISOString().slice(0, 10);
+      return {
+        day: date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+        collections: sessions.filter((session) => session.created_at.slice(0, 10) === key).length,
+        images: sessions.filter((session) => session.created_at.slice(0, 10) === key)
+          .reduce((total, session) => total + session.captured_images, 0),
+      };
+    });
+
+    return res.json({
+      success: true,
+      summary: {
+        productCount: products.length,
+        collectionCount: totalSessions,
+        completedCount: completedSessions,
+        imagesCaptured,
+        completionRate: totalSessions ? Math.round((completedSessions / totalSessions) * 100) : 0,
+      },
+      dailyCollections,
+      collectionStatuses: ["COMPLETE", "IN_PROGRESS", "CANCELLED"].map((status) => ({
+        status,
+        count: sessions.filter((session) => session.status === status).length,
+      })),
+      productTypes,
+      recentCollections: sessions.slice(0, 8),
+    });
+  } catch (error) {
+    console.error("Dashboard data error:", error);
+    return res.status(500).json({ success: false, message: "Unable to load dashboard data" });
+  }
+});
+
+app.get("/api/products/:id", requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(404).json({ success: false, message: "Product not found" });
+  }
+  try {
+    const product = db.prepare(`SELECT ${PRODUCT_COLUMNS} FROM products WHERE id = ? AND user_id = ?`)
+      .get(id, req.session.user.id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    return res.json({ success: true, product });
+  } catch (err) {
+    console.error("Product lookup error:", err);
+    return res.status(500).json({ success: false, message: "Unable to load product" });
+  }
+});
+
+app.put("/api/products/:id", requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(404).json({ success: false, message: "Product not found" });
+  }
+  const { product, error } = validateProduct(req.body);
+  if (error) return res.status(400).json({ success: false, message: error });
+
+  try {
+    const result = db.prepare(`
+      UPDATE products SET
+        product_name = @product_name, product_type = @product_type,
+        product_id = @product_id, manufacturer = @manufacturer,
+        description = @description, material = @material, length = @length,
+        width = @width, height = @height, dimension_unit = @dimension_unit,
+        product_color = @product_color, updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id AND user_id = @user_id
+    `).run({ ...product, id, user_id: req.session.user.id });
+    if (!result.changes) return res.status(404).json({ success: false, message: "Product not found" });
+    const saved = db.prepare(`SELECT ${PRODUCT_COLUMNS} FROM products WHERE id = ? AND user_id = ?`)
+      .get(id, req.session.user.id);
+    return res.json({ success: true, message: "Product updated successfully", product: saved });
+  } catch (err) {
+    if (isProductIdConflict(err)) {
+      return res.status(409).json({ success: false, message: "This Product ID already exists" });
+    }
+    console.error("Product update error:", err);
+    return res.status(500).json({ success: false, message: "Unable to update product" });
+  }
+});
+
+app.delete("/api/products/:id", requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    return res.status(404).json({ success: false, message: "Product not found" });
+  }
+  try {
+    const result = db.prepare("DELETE FROM products WHERE id = ? AND user_id = ?")
+      .run(id, req.session.user.id);
+    if (!result.changes) return res.status(404).json({ success: false, message: "Product not found" });
+    return res.json({ success: true, message: "Product deleted successfully" });
+  } catch (err) {
+    console.error("Product deletion error:", err);
+    return res.status(500).json({ success: false, message: "Unable to delete product" });
+  }
+});
+
+// ------------------------------
+// REFERENCE IMAGE COLLECTIONS
+// ------------------------------
+
+const referenceUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, callback) => {
+    if (file.mimetype !== "image/jpeg") {
+      const error = new Error("Only JPEG images are accepted");
+      error.status = 415;
+      return callback(error);
+    }
+    callback(null, true);
+  },
+});
+
+class PythonServiceError extends Error {
+  constructor(message, status = 502) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function callPython(path, { method = "GET", body, headers = {} } = {}) {
+  if (!process.env.PYTHON_SERVICE_SECRET) {
+    throw new PythonServiceError("OpenCV service is not configured", 503);
+  }
+  const requestHeaders = { "X-Service-Secret": process.env.PYTHON_SERVICE_SECRET, ...headers };
+  let requestBody = body;
+  if (body && !(body instanceof FormData)) {
+    requestHeaders["Content-Type"] = "application/json";
+    requestBody = JSON.stringify(body);
+  }
+  let response;
+  try {
+    response = await fetch(`${PYTHON_SERVICE_URL}${path}`, {
+      method,
+      headers: requestHeaders,
+      body: requestBody,
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (error) {
+    console.error("OpenCV service request failed:", error.message);
+    throw new PythonServiceError("OpenCV image service is unavailable", 502);
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const status = [400, 404, 409, 413, 415].includes(response.status) ? response.status : 502;
+    throw new PythonServiceError(payload.detail || "OpenCV image service request failed", status);
+  }
+  return response;
+}
+
+async function getOwnedProduct(productId, userId) {
+  return db.prepare(`SELECT id, product_name, product_type, product_id, manufacturer
+    FROM products WHERE id = ? AND user_id = ?`).get(productId, userId);
+}
+
+async function getOwnedReferenceSession(sessionId, userId) {
+  const response = await callPython(`/internal/reference-sessions/${encodeURIComponent(sessionId)}`);
+  const { session: referenceSession } = await response.json();
+  if (!referenceSession || referenceSession.user_id !== userId) {
+    throw new PythonServiceError("Reference session not found", 404);
+  }
+  const product = await getOwnedProduct(referenceSession.product_id, userId);
+  if (!product) throw new PythonServiceError("Reference session not found", 404);
+  return { referenceSession, product };
+}
+
+function sendReferenceError(res, error, fallback = "Unable to complete reference image request") {
+  if (error instanceof PythonServiceError) {
+    return res.status(error.status).json({ success: false, message: error.message });
+  }
+  console.error(fallback, error);
+  return res.status(500).json({ success: false, message: fallback });
+}
+
+function publicReferenceSession(referenceSession) {
+  if (!referenceSession) return referenceSession;
+  const { images, user_id, ...safeSession } = referenceSession;
+  return {
+    ...safeSession,
+    ...(images ? { images: images.map(({ image_path, ...image }) => image) } : {}),
+  };
+}
+
+function publicReferenceImage(image) {
+  if (!image) return image;
+  const { image_path, ...safeImage } = image;
+  return safeImage;
+}
+
+app.post("/api/reference-images/sessions", requireAuth, async (req, res) => {
+  const productId = Number(req.body?.product_id);
+  if (!Number.isSafeInteger(productId) || productId <= 0) {
+    return res.status(400).json({ success: false, message: "Select a valid product" });
+  }
+  try {
+    const product = await getOwnedProduct(productId, req.session.user.id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    const response = await callPython("/internal/reference-sessions", {
+      method: "POST",
+      body: { session_id: randomUUID(), product_id: product.id, user_id: req.session.user.id, total_images: 20 },
+    });
+    const { session: referenceSession } = await response.json();
+    return res.status(201).json({ success: true, session: publicReferenceSession(referenceSession), product });
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to start reference collection");
+  }
+});
+
+app.post("/api/reference-images/sessions/:sessionId/capture", requireAuth, referenceUpload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: "A JPEG image is required" });
+  const imageNumber = Number(req.body?.imageNumber ?? req.body?.image_number);
+  if (!Number.isSafeInteger(imageNumber) || imageNumber < 1 || imageNumber > 20) {
+    return res.status(400).json({ success: false, message: "Image number must be between 1 and 20" });
+  }
+  try {
+    const { referenceSession } = await getOwnedReferenceSession(req.params.sessionId, req.session.user.id);
+    if (referenceSession.status !== "IN_PROGRESS") {
+      return res.status(409).json({ success: false, message: "This collection is not in progress" });
+    }
+    const form = new FormData();
+    form.append("product_id", String(referenceSession.product_id));
+    form.append("image_number", String(imageNumber));
+    form.append("image", new Blob([req.file.buffer], { type: "image/jpeg" }), "capture.jpg");
+    const response = await callPython(
+      `/internal/reference-sessions/${encodeURIComponent(referenceSession.id)}/images`,
+      { method: "POST", body: form },
+    );
+    const saved = await response.json();
+    saved.image = publicReferenceImage(saved.image);
+    return res.status(201).json(saved);
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to save captured image");
+  }
+});
+
+app.get("/api/reference-images/sessions/:sessionId", requireAuth, async (req, res) => {
+  try {
+    const { referenceSession, product } = await getOwnedReferenceSession(req.params.sessionId, req.session.user.id);
+    return res.json({ success: true, session: publicReferenceSession(referenceSession), product });
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to load reference session");
+  }
+});
+
+app.get("/api/reference-images/products/:productId", requireAuth, async (req, res) => {
+  const productId = Number(req.params.productId);
+  if (!Number.isSafeInteger(productId) || productId <= 0) {
+    return res.status(404).json({ success: false, message: "Product not found" });
+  }
+  try {
+    const product = await getOwnedProduct(productId, req.session.user.id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    const response = await callPython(`/internal/reference-sessions?product_id=${productId}`);
+    const { sessions } = await response.json();
+    const ownedSessions = sessions.filter((item) => item.user_id === req.session.user.id)
+      .map(({ user_id, ...item }) => item);
+    return res.json({ success: true, product, sessions: ownedSessions });
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to load collection history");
+  }
+});
+
+app.post("/api/reference-images/sessions/:sessionId/complete", requireAuth, async (req, res) => {
+  try {
+    const { referenceSession } = await getOwnedReferenceSession(req.params.sessionId, req.session.user.id);
+    const product = await getOwnedProduct(referenceSession.product_id, req.session.user.id);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    const response = await callPython(`/internal/reference-sessions/${encodeURIComponent(referenceSession.id)}/complete`, { method: "POST" });
+    const result = await response.json();
+    result.session = publicReferenceSession(result.session);
+    return res.json(result);
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to complete collection");
+  }
+});
+
+app.post("/api/reference-images/sessions/:sessionId/cancel", requireAuth, async (req, res) => {
+  try {
+    const { referenceSession } = await getOwnedReferenceSession(req.params.sessionId, req.session.user.id);
+    const response = await callPython(`/internal/reference-sessions/${encodeURIComponent(referenceSession.id)}/cancel`, { method: "POST" });
+    const result = await response.json();
+    result.session = publicReferenceSession(result.session);
+    return res.json(result);
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to cancel collection");
+  }
+});
+
+app.get("/api/reference-images/sessions/:sessionId/images/:imageId", requireAuth, async (req, res) => {
+  const imageId = Number(req.params.imageId);
+  if (!Number.isSafeInteger(imageId) || imageId <= 0) {
+    return res.status(404).json({ success: false, message: "Image not found" });
+  }
+  try {
+    const { referenceSession } = await getOwnedReferenceSession(req.params.sessionId, req.session.user.id);
+    const response = await callPython(
+      `/internal/reference-sessions/${encodeURIComponent(referenceSession.id)}/images/${imageId}/file`,
+    );
+    const image = Buffer.from(await response.arrayBuffer());
+    res.set("Content-Type", "image/jpeg");
+    res.set("Content-Length", String(image.length));
+    res.set("Cache-Control", "private, no-store");
+    res.set("X-Content-Type-Options", "nosniff");
+    return res.send(image);
+  } catch (error) {
+    return sendReferenceError(res, error, "Unable to load reference image");
+  }
+});
+
+// ------------------------------
 // EXAMPLE PROTECTED API
 // ------------------------------
 
@@ -394,11 +846,21 @@ app.get("/api/protected", requireAuth, (req, res) => {
 // ------------------------------
 
 app.use((err, req, res, next) => {
-  console.error("Server error:", err);
-
   if (res.headersSent) {
     return next(err);
   }
+
+  if (err instanceof multer.MulterError) {
+    const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+    return res.status(status).json({
+      success: false,
+      message: status === 413 ? "Image must be 10 MB or smaller" : "Invalid image upload",
+    });
+  }
+  if (err.status === 415) {
+    return res.status(415).json({ success: false, message: err.message });
+  }
+  console.error("Server error:", err);
 
   res.status(500).json({
     success: false,

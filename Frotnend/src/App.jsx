@@ -10,10 +10,11 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProductSetupPage from './pages/ProductSetupPage';
+import ReferenceImagesPage from './pages/ReferenceImagesPage';
 import './App.css';
 
 const routes = [
-  ['/setup/references', 'Reference Images'], ['/setup/training', 'Learn Normal'],
+  ['/setup/training', 'Learn Normal'],
   ['/inspection', 'Live Inspection'], ['/inspection/:id', 'Inspection Result'],
   ['/history', 'Inspection History'], ['/products/:id/settings', 'Product Settings'],
   ['/insights', 'Quality Insights'], ['/copilot', 'AI Copilot'],
@@ -44,6 +45,7 @@ function DashboardShell() {
       <div className="content"><Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/setup" element={<ProductSetupPage />} />
+        <Route path="/setup/references" element={<ReferenceImagesPage />} />
         {routes.map(([path, title]) => <Route key={path} path={path} element={<Placeholder title={title} />} />)}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes></div>

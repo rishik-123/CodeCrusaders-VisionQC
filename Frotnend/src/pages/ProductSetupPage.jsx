@@ -1,5 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Breadcrumbs from '../components/layout/Breadcrumbs';
+import ToastContainer from '../components/common/ToastContainer';
+import { useToast } from '../hooks/useToast';
+import { useAuth } from '../context/AuthContext';
+import { productApi } from '../services/api';
 
 const PRODUCT_TYPES = [
   'bottle',
@@ -24,6 +29,10 @@ const UNITS = ['mm', 'cm', 'inches'];
 
 export default function ProductSetupPage() {
   const [step, setStep] = useState(1);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toasts, addToast, removeToast } = useToast();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     productName: '',
@@ -61,9 +70,6 @@ export default function ProductSetupPage() {
     if (!formData.productID.trim()) {
       newErrors.productID = 'Product ID is required';
     }
-    if (!formData.manufacturer.trim()) {
-      newErrors.manufacturer = 'Manufacturer name is required';
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -84,9 +90,64 @@ export default function ProductSetupPage() {
     }
   };
 
-  const handleCompleteSetup = () => {
-    setStep(3);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleCompleteSetup = async () => {
+    if (isSaving) return;
+    if (!validateStep1()) {
+      addToast('Please complete required fields', 'error');
+      setStep(1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const dimensionErrors = {};
+    for (const field of ['length', 'width', 'height']) {
+      const value = formData[field];
+      if (value !== '' && (!Number.isFinite(Number(value)) || Number(value) <= 0)) {
+        dimensionErrors[field] = 'Enter a valid product dimension';
+      }
+    }
+    if (Object.keys(dimensionErrors).length) {
+      setErrors(dimensionErrors);
+      addToast('Enter valid product dimensions', 'error');
+      setStep(1);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await productApi.createProduct({
+        product_name: formData.productName.trim(),
+        product_type: formData.productType,
+        product_id: formData.productID.trim(),
+        manufacturer: formData.manufacturer.trim(),
+        description: formData.description.trim(),
+        material: formData.material.trim(),
+        length: formData.length === '' ? null : Number(formData.length),
+        width: formData.width === '' ? null : Number(formData.width),
+        height: formData.height === '' ? null : Number(formData.height),
+        dimension_unit: formData.unit,
+        product_color: formData.color.trim(),
+      });
+      setStep(3);
+      addToast('Product created successfully', 'success');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      if (error.status === 401) {
+        addToast('Please log in again', 'error');
+        await logout();
+        navigate('/login', { replace: true });
+      } else if (error.status === 409) {
+        addToast('This Product ID already exists', 'error');
+      } else if (error.status === 400) {
+        addToast(error.message || 'Please complete required fields', 'error');
+      } else if (error.status >= 500) {
+        addToast('Unable to save product', 'error');
+      } else {
+        addToast('Could not connect to server', 'error');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -111,6 +172,7 @@ export default function ProductSetupPage() {
 
   return (
     <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <Breadcrumbs title="Product Setup" trail={['Setup']} />
 
       <div className="page-body">
@@ -250,7 +312,7 @@ export default function ProductSetupPage() {
                   {/* Manufacturer */}
                   <div style={styles.formGroup}>
                     <label style={styles.label}>
-                      Manufacturer <span style={{ color: 'var(--danger)' }}>*</span>
+                      Manufacturer
                     </label>
                     <input
                       type="text"
@@ -522,8 +584,9 @@ export default function ProductSetupPage() {
                   type="button"
                   onClick={handleCompleteSetup}
                   style={styles.btnSuccess}
+                  disabled={isSaving}
                 >
-                  <i className="fas fa-check-circle" style={{ marginRight: 8 }} /> Complete Setup
+                  <i className={`fas ${isSaving ? 'fa-spinner fa-spin' : 'fa-check-circle'}`} style={{ marginRight: 8 }} /> {isSaving ? 'Saving Product…' : 'Complete Setup'}
                 </button>
               </div>
             </div>

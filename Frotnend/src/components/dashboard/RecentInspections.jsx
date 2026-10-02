@@ -1,42 +1,39 @@
 import { Link } from 'react-router-dom';
 import Card from '../common/Card';
 import { Badge } from '../common/UIComponents';
-import { recentInspections } from '../../data/mockData';
 
-export default function RecentInspections() {
+export default function RecentInspections({ collections }) {
   return (
-    <Card title="Recent Inspections" flush>
+    <Card title="Recent Reference Collections" flush>
       <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
-              <th>Image</th>
-              <th>Inspection ID</th>
+              <th>Session</th>
               <th>Product</th>
-              <th>Score</th>
-              <th>Threshold</th>
+              <th>Images</th>
               <th>Result</th>
-              <th />
+              <th>Created</th>
             </tr>
           </thead>
           <tbody>
-            {recentInspections.map((r) => {
-              const fail = r.score > r.threshold;
+            {collections.map((collection) => {
+              const statusType = collection.status === 'COMPLETE' ? 'success' : collection.status === 'CANCELLED' ? 'danger' : 'primary';
               return (
-                <tr key={r.id}>
-                  <td><div className="thumb"><i className="far fa-image" /></div></td>
-                  <td>{r.id}</td>
-                  <td>{r.product}</td>
-                  <td>{r.score.toFixed(2)}</td>
-                  <td>{r.threshold.toFixed(2)}</td>
-                  <td><Badge type={fail ? 'danger' : 'success'}>{fail ? 'FAIL' : 'PASS'}</Badge></td>
-                  <td><Link to={`/inspection/${r.id}`}>View</Link></td>
+                <tr key={collection.id}>
+                  <td title={collection.id}>{collection.id.slice(0, 8)}</td>
+                  <td>{collection.product_name}</td>
+                  <td>{collection.captured_images}/{collection.total_images}</td>
+                  <td><Badge type={statusType}>{collection.status.replace('_', ' ')}</Badge></td>
+                  <td>{new Date(`${collection.created_at.replace(' ', 'T')}Z`).toLocaleDateString()}</td>
                 </tr>
               );
             })}
+            {collections.length === 0 && <tr><td colSpan="5">No reference collections have been saved yet.</td></tr>}
           </tbody>
         </table>
       </div>
+      <div className="card-footer"><Link to="/setup/references">Open reference image collection</Link></div>
     </Card>
   );
 }

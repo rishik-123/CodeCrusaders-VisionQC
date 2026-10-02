@@ -204,6 +204,32 @@ VITE_API_BASE_URL=http://localhost:5000/api
 
 ---
 
+## ⚠️ Limitations
+
+- **2D Surface & Single-Angle Orientation**: Current inspection pipelines focus on 2D visual anomaly detection. Complex 3D volumetric flaws or multi-faceted parts require calibrated multi-camera synchronization.
+- **Lighting & Optical Variance Sensitivity**: Like all visual inspection systems, severe ambient light fluctuations, glare, or motion blur can shift feature distributions without controlled industrial illumination (e.g., dome/ring lights).
+- **Edge Compute & VRAM Demands**: Concurrent execution of real-time PatchCore visual feature extraction and the local `qwen3:8b` AI Copilot achieves peak throughput on systems equipped with dedicated GPU acceleration (>= 8GB VRAM).
+- **Memory Bank Scaling**: Highly diverse product surfaces with massive golden sample sets require coreset subsampling to prevent elevated inference latency and memory footprints.
+
+---
+
+## 🔮 Future Scope & Roadmap
+
+- **Multi-Camera & 3D Point Cloud Anomaly Detection**: Expanding the inspection pipeline to multi-angle camera feeds and 3D surface scanning for all-round defect localization.
+- **Industrial PLC & SCADA Integration**: Native edge protocol support (OPC-UA, Modbus TCP, MQTT) to directly trigger physical pneumatic rejection arms and conveyer sorters.
+- **Active Online Continual Learning**: Dynamic memory-bank fine-tuning and active human-in-the-loop feedback directly from operator corrections on the line.
+- **Embedded Edge Deployment & Model Quantization**: Exporting PatchCore and feature extractors via ONNX / TensorRT for ultra-low-power edge deployment on NVIDIA Jetson Orin and industrial SBCs.
+- **Multi-Modal Vision-Language Copilot**: Integrating Vision-Language Models (VLMs) for direct image-based defect reasoning, conversational defect classification, and automated corrective action generation.
+
+---
+
+## 👥 Team Members
+
+- **Rishik Jariwala**
+- **Devam Pithadia**
+
+---
+
 ## 📄 License & Attribution
-Developed for **TechForge VisionQC** manufacturing automation and defect intelligence.
+Developed for **TechForge VisionQC** manufacturing automation and defect intelligence.  
 Distributed under the **MIT License**.

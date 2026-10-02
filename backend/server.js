@@ -9,6 +9,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
+import { generateInspectorResponse, getOllamaStatus, OllamaError, ollamaConfig } from "./services/ollamaService.js";
+import { getVisionQCContext } from "./services/visionqcContext.js";
 
 import { db } from "./database/database.js";
 
@@ -830,6 +832,134 @@ app.get("/api/reference-images/sessions/:sessionId/images/:imageId", requireAuth
 });
 
 // ------------------------------
+// AI QUALITY INSPECTOR COPILOT
+// ------------------------------
+
+app.get("/api/copilot/status", requireAuth, async (_req, res) => {
+  return res.json({ success: true, ...(await getOllamaStatus()) });
+});
+
+app.get("/api/copilot/conversations", requireAuth, (req, res) => {
+  try {
+    const conversations = db.prepare(`
+      SELECT c.id, c.title, c.product_id, c.created_at, c.updated_at,
+        p.product_name,
+        (SELECT content FROM copilot_messages m WHERE m.conversation_id = c.id
+          ORDER BY m.id DESC LIMIT 1) AS last_message
+      FROM copilot_conversations c
+      LEFT JOIN products p ON p.id = c.product_id AND p.user_id = c.user_id
+      WHERE c.user_id = ? ORDER BY c.updated_at DESC, c.created_at DESC LIMIT 100
+    `).all(req.session.user.id);
+    return res.json({ success: true, conversations });
+  } catch (error) {
+    console.error("Copilot conversation listing error:", error);
+    return res.status(500).json({ success: false, message: "Unable to load conversations" });
+  }
+});
+
+app.get("/api/copilot/conversations/:id", requireAuth, (req, res) => {
+  try {
+    const conversation = db.prepare(`
+      SELECT id, title, product_id, created_at, updated_at
+      FROM copilot_conversations WHERE id = ? AND user_id = ?
+    `).get(req.params.id, req.session.user.id);
+    if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
+    const messages = db.prepare(`
+      SELECT id, role, content, created_at FROM copilot_messages
+      WHERE conversation_id = ? ORDER BY id ASC
+    `).all(conversation.id);
+    return res.json({ success: true, conversation, messages });
+  } catch (error) {
+    console.error("Copilot conversation lookup error:", error);
+    return res.status(500).json({ success: false, message: "Unable to load conversation" });
+  }
+});
+
+app.post("/api/copilot/chat", requireAuth, async (req, res) => {
+  const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+  if (!message) return res.status(400).json({ success: false, message: "Enter a message to continue" });
+  if (message.length > 8000) return res.status(400).json({ success: false, message: "Message must be 8,000 characters or fewer" });
+
+  const userId = req.session.user.id;
+  const suppliedConversationId = typeof req.body?.conversationId === "string" && req.body.conversationId.trim()
+    ? req.body.conversationId.trim() : null;
+  const hasProductId = Object.prototype.hasOwnProperty.call(req.body || {}, "productId");
+  const parsedProductId = hasProductId && req.body.productId !== null && req.body.productId !== ""
+    ? Number(req.body.productId) : null;
+  if (parsedProductId !== null && (!Number.isSafeInteger(parsedProductId) || parsedProductId <= 0)) {
+    return res.status(400).json({ success: false, message: "Select a valid product" });
+  }
+
+  try {
+    let conversation = null;
+    if (suppliedConversationId) {
+      conversation = db.prepare(`SELECT id, user_id, title, product_id FROM copilot_conversations WHERE id = ? AND user_id = ?`)
+        .get(suppliedConversationId, userId);
+      if (!conversation) return res.status(404).json({ success: false, message: "Conversation not found" });
+    }
+
+    const requestedProductId = hasProductId ? parsedProductId : (conversation?.product_id ?? null);
+    if (requestedProductId !== null) {
+      const ownedProduct = db.prepare("SELECT id FROM products WHERE id = ? AND user_id = ?").get(requestedProductId, userId);
+      if (!ownedProduct) return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    const context = getVisionQCContext(userId, requestedProductId);
+    const priorMessages = conversation
+      ? db.prepare(`SELECT role, content FROM copilot_messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 20`)
+        .all(conversation.id).reverse()
+      : [];
+    const assistantMessage = await generateInspectorResponse({
+      history: [...priorMessages, { role: "user", content: message }],
+      context,
+    });
+
+    const conversationId = conversation?.id || randomUUID();
+    const title = conversation?.title || message.replace(/\s+/g, " ").slice(0, 72) || "New conversation";
+    const persist = db.transaction(() => {
+      if (!conversation) {
+        db.prepare(`INSERT INTO copilot_conversations (id, user_id, title, product_id) VALUES (?, ?, ?, ?)`)
+          .run(conversationId, userId, title, requestedProductId);
+      } else {
+        db.prepare(`UPDATE copilot_conversations SET product_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?`)
+          .run(requestedProductId, conversationId, userId);
+      }
+      const insertMessage = db.prepare("INSERT INTO copilot_messages (conversation_id, role, content) VALUES (?, ?, ?)");
+      insertMessage.run(conversationId, "user", message);
+      insertMessage.run(conversationId, "assistant", assistantMessage);
+      db.prepare("UPDATE copilot_conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?")
+        .run(conversationId, userId);
+    });
+    persist();
+    return res.json({
+      success: true,
+      conversationId,
+      title,
+      productId: requestedProductId,
+      model: ollamaConfig.model,
+      message: { role: "assistant", content: assistantMessage },
+    });
+  } catch (error) {
+    if (error instanceof OllamaError) {
+      return res.status(error.status).json({ success: false, code: error.code, message: error.message });
+    }
+    console.error("Copilot chat error:", error);
+    return res.status(500).json({ success: false, message: "Unable to process your Copilot request" });
+  }
+});
+
+app.delete("/api/copilot/conversations/:id", requireAuth, (req, res) => {
+  try {
+    const result = db.prepare("DELETE FROM copilot_conversations WHERE id = ? AND user_id = ?")
+      .run(req.params.id, req.session.user.id);
+    if (!result.changes) return res.status(404).json({ success: false, message: "Conversation not found" });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("Copilot conversation deletion error:", error);
+    return res.status(500).json({ success: false, message: "Unable to delete conversation" });
+  }
+});
+
 // EXAMPLE PROTECTED API
 // ------------------------------
 
@@ -859,6 +989,9 @@ app.use((err, req, res, next) => {
   }
   if (err.status === 415) {
     return res.status(415).json({ success: false, message: err.message });
+  }
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({ success: false, message: "Request body must contain valid JSON" });
   }
   console.error("Server error:", err);
 

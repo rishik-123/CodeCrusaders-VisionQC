@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import AICopilotPage from './pages/AICopilotPage';
 import ProductSetupPage from './pages/ProductSetupPage';
 import ReferenceImagesPage from './pages/ReferenceImagesPage';
 import './App.css';
@@ -17,7 +18,7 @@ const routes = [
   ['/setup/training', 'Learn Normal'],
   ['/inspection', 'Live Inspection'], ['/inspection/:id', 'Inspection Result'],
   ['/history', 'Inspection History'], ['/products/:id/settings', 'Product Settings'],
-  ['/insights', 'Quality Insights'], ['/copilot', 'AI Copilot'],
+  ['/insights', 'Quality Insights'],
 ];
 
 function Placeholder({ title }) {
@@ -44,6 +45,7 @@ function DashboardShell() {
     <div className="main" onClick={() => mobileOpen && setMobileOpen(false)}>
       <div className="content"><Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/copilot" element={<AICopilotPage />} />
         <Route path="/setup" element={<ProductSetupPage />} />
         <Route path="/setup/references" element={<ReferenceImagesPage />} />
         {routes.map(([path, title]) => <Route key={path} path={path} element={<Placeholder title={title} />} />)}

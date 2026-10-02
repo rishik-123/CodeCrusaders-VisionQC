@@ -11,6 +11,7 @@ export async function apiRequest(path, options = {}) {
   if (!response.ok) {
     const error = new Error(payload.message || 'Unable to complete the request.');
     error.status = response.status;
+    error.payload = payload;
     throw error;
   }
   return payload;
@@ -33,6 +34,14 @@ export const productApi = {
 
 export const dashboardApi = {
   get: () => apiRequest('/api/dashboard'),
+};
+
+export const copilotApi = {
+  status: () => apiRequest('/api/copilot/status'),
+  chat: (data) => apiRequest('/api/copilot/chat', { method: 'POST', body: JSON.stringify(data) }),
+  conversations: () => apiRequest('/api/copilot/conversations'),
+  conversation: (id) => apiRequest(`/api/copilot/conversations/${encodeURIComponent(id)}`),
+  deleteConversation: (id) => apiRequest(`/api/copilot/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
 
 export const referenceApi = {

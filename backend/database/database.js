@@ -66,12 +66,42 @@ db.exec(`
   ON products(user_id, created_at DESC);
 `);
 
+// Persistent, user-scoped AI Copilot conversations.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS copilot_conversations (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    title TEXT,
+    product_id INTEGER,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_copilot_conversations_user_updated
+    ON copilot_conversations(user_id, updated_at DESC);
+
+  CREATE TABLE IF NOT EXISTS copilot_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversation_id) REFERENCES copilot_conversations(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_copilot_messages_conversation_created
+    ON copilot_messages(conversation_id, created_at, id);
+`);
+
 console.log("==================================================");
 console.log("[SQLite] Connected to database:");
 console.log(databasePath);
 console.log("[SQLite] Users table initialized");
 console.log("[SQLite] Sessions table initialized");
 console.log("[SQLite] Products table initialized");
+console.log("[SQLite] Copilot conversation tables initialized");
 console.log("==================================================");
 
 export { db };

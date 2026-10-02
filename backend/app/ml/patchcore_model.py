@@ -47,32 +47,42 @@ class PatchcoreInferenceWrapper:
         with torch.no_grad():
             if hasattr(self.model, "model"):
                 out = self.model.model(tensor)
-                if isinstance(out, (tuple, list)):
-                    first, second = out[0], out[1] if len(out) > 1 else None
-                    if first is not None and (first.ndim == 0 or first.numel() == 1):
-                        score = float(first.cpu().item())
-                        amap = second.squeeze().cpu().numpy() if isinstance(second, torch.Tensor) else np.zeros((256, 256), dtype=np.float32)
-                    else:
-                        score = float(second.cpu().item()) if second is not None else 0.0
-                        amap = first.squeeze().cpu().numpy() if isinstance(first, torch.Tensor) else np.zeros((256, 256), dtype=np.float32)
-                else:
-                    score = float(out.cpu().item()) if hasattr(out, "cpu") else 0.0
-                    amap = np.zeros((256, 256), dtype=np.float32)
             else:
-                output = self.model(tensor)
-                if hasattr(output, "pred_score"):
-                    score = float(output.pred_score.cpu().item())
-                elif isinstance(output, dict) and "pred_score" in output:
-                    score = float(output["pred_score"].cpu().item())
-                else:
-                    score = float(output[0].cpu().item()) if hasattr(output, "__getitem__") else 0.0
+                out = self.model(tensor)
 
-                if hasattr(output, "anomaly_map"):
-                    amap = output.anomaly_map.squeeze().cpu().numpy()
-                elif isinstance(output, dict) and "anomaly_map" in output:
-                    amap = output["anomaly_map"].squeeze().cpu().numpy()
+            # 1. Extract Anomaly Score
+            score = 0.0
+            if hasattr(out, "pred_score") and out.pred_score is not None:
+                score = float(out.pred_score.cpu().item())
+            elif isinstance(out, dict) and "pred_score" in out:
+                score = float(out["pred_score"].cpu().item())
+            elif isinstance(out, (tuple, list)):
+                for item in out:
+                    if isinstance(item, torch.Tensor) and (item.ndim == 0 or item.numel() == 1):
+                        score = float(item.cpu().item())
+                        break
                 else:
-                    amap = np.zeros((256, 256), dtype=np.float32)
+                    if len(out) > 0 and isinstance(out[0], torch.Tensor):
+                        score = float(out[0].max().cpu().item())
+            elif hasattr(out, "cpu") and hasattr(out, "item"):
+                score = float(out.cpu().item())
+
+            # 2. Extract Anomaly Map
+            amap = np.zeros((256, 256), dtype=np.float32)
+            if hasattr(out, "anomaly_map") and out.anomaly_map is not None:
+                raw_amap = out.anomaly_map
+                if isinstance(raw_amap, torch.Tensor):
+                    amap = raw_amap.squeeze().cpu().numpy()
+            elif isinstance(out, dict) and "anomaly_map" in out:
+                raw_amap = out["anomaly_map"]
+                if isinstance(raw_amap, torch.Tensor):
+                    amap = raw_amap.squeeze().cpu().numpy()
+            elif isinstance(out, (tuple, list)):
+                for item in out:
+                    if isinstance(item, torch.Tensor) and item.ndim in (3, 4):
+                        amap = item.squeeze().cpu().numpy()
+                        break
 
         infer_time_ms = round((time.time() - t0) * 1000, 2)
-        return score, amap, infer_time_ms
+        return float(score), amap, infer_time_ms
+

@@ -61,12 +61,57 @@ def validate_image_file(file_path: Union[str, os.PathLike]) -> Image.Image:
         data = f.read()
     return validate_image_bytes(data, filename=str(file_path))
 
-def preprocess_image_for_inference(img: Image.Image) -> Tuple[torch.Tensor, Image.Image]:
+def filter_handheld_artifacts(img: Image.Image) -> Image.Image:
     """
-    Transforms PIL image into PyTorch tensor formatted for PatchCore (1, 3, 224, 224).
+    Applies adaptive luminance equalization (CLAHE) and perimeter finger/skin suppression.
+    Allows users to hold products in their hands with light reflections without false alarms.
+    """
+    try:
+        import cv2
+        np_img = np.array(img.convert("RGB"))
+        h, w = np_img.shape[:2]
+
+        # 1. Lighting Equalization (CLAHE in LAB color space)
+        lab = cv2.cvtColor(np_img, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        l_eq = clahe.apply(l)
+        lab_eq = cv2.merge((l_eq, a, b))
+        norm_rgb = cv2.cvtColor(lab_eq, cv2.COLOR_LAB2RGB)
+
+        # 2. Hand & Finger Suppression: detect skin tones at outer perimeter
+        hsv = cv2.cvtColor(norm_rgb, cv2.COLOR_RGB2HSV)
+        lower_skin = np.array([0, 18, 45], dtype=np.uint8)
+        upper_skin = np.array([28, 255, 255], dtype=np.uint8)
+        skin_mask = cv2.inRange(hsv, lower_skin, upper_skin)
+
+        edge_mask = np.zeros((h, w), dtype=np.uint8)
+        margin = int(min(h, w) * 0.22)
+        edge_mask[:margin, :] = 255
+        edge_mask[-margin:, :] = 255
+        edge_mask[:, :margin] = 255
+        edge_mask[:, -margin:] = 255
+
+        finger_mask = cv2.bitwise_and(skin_mask, edge_mask)
+        finger_mask = cv2.GaussianBlur(finger_mask, (21, 21), 0)
+
+        mean_val = np.mean(norm_rgb, axis=(0, 1))
+        weight = (finger_mask.astype(np.float32) / 255.0)[:, :, np.newaxis]
+        cleaned = (norm_rgb * (1.0 - weight) + mean_val * weight).astype(np.uint8)
+
+        return Image.fromarray(cleaned)
+    except Exception:
+        return img
+
+def preprocess_image_for_inference(img: Image.Image, handheld_filter: bool = True) -> Tuple[torch.Tensor, Image.Image]:
+    """
+    Transforms PIL image into PyTorch tensor formatted for PatchCore (1, 3, 256, 256).
+    Applies handheld lighting and finger tolerance filter.
     Returns (tensor, rgb_pil_image).
     """
     if img.mode != "RGB":
         img = img.convert("RGB")
-    tensor = INFERENCE_TRANSFORM(img).unsqueeze(0)
-    return tensor, img
+    
+    proc_img = filter_handheld_artifacts(img) if handheld_filter else img
+    tensor = INFERENCE_TRANSFORM(proc_img).unsqueeze(0)
+    return tensor, proc_img

@@ -48,7 +48,7 @@ def run_webcam_inspection(
         return
 
     last_result = None
-    last_overlay = None
+    use_roi = True
 
     while True:
         ret, frame = cap.read()
@@ -56,29 +56,66 @@ def run_webcam_inspection(
             print("[ERROR] Failed to grab webcam frame.")
             break
 
-        # Display instructions on live frame
+        h, w = frame.shape[:2]
         display_frame = frame.copy()
-        h, w = display_frame.shape[:2]
 
-        status_text = "READY - Press [SPACE] to inspect, [Q] to quit"
-        cv2.rectangle(display_frame, (0, 0), (w, 40), (40, 40, 40), -1)
-        cv2.putText(display_frame, status_text, (10, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        # Define Central Inspection Region of Interest (ROI)
+        roi_size = min(h, w) * 2 // 3
+        x1 = (w - roi_size) // 2
+        y1 = (h - roi_size) // 2
+        x2 = x1 + roi_size
+        y2 = y1 + roi_size
 
+        # Draw Industrial Inspection Reticle (Corner Brackets)
+        if use_roi:
+            bracket_len = 25
+            c_reticle = (0, 220, 255)
+            thick = 2
+            # Top-Left
+            cv2.line(display_frame, (x1, y1), (x1 + bracket_len, y1), c_reticle, thick)
+            cv2.line(display_frame, (x1, y1), (x1, y1 + bracket_len), c_reticle, thick)
+            # Top-Right
+            cv2.line(display_frame, (x2, y1), (x2 - bracket_len, y1), c_reticle, thick)
+            cv2.line(display_frame, (x2, y1), (x2, y1 + bracket_len), c_reticle, thick)
+            # Bottom-Left
+            cv2.line(display_frame, (x1, y2), (x1 + bracket_len, y2), c_reticle, thick)
+            cv2.line(display_frame, (x1, y2), (x1, y2 - bracket_len), c_reticle, thick)
+            # Bottom-Right
+            cv2.line(display_frame, (x2, y2), (x2 - bracket_len, y2), c_reticle, thick)
+            cv2.line(display_frame, (x2, y2), (x2, y2 - bracket_len), c_reticle, thick)
+            cv2.putText(display_frame, "INSPECTION ZONE", (x1 + 10, y1 + 22), cv2.FONT_HERSHEY_SIMPLEX, 0.5, c_reticle, 1)
+
+        # Header HUD
+        status_text = f"VisionQC | Thresh: {threshold:.1f} | [SPACE]=Inspect | [R]=ROI Mode | [+/-]=Thresh | [Q]=Quit"
+        cv2.rectangle(display_frame, (0, 0), (w, 36), (25, 25, 25), -1)
+        cv2.putText(display_frame, status_text, (10, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (240, 240, 240), 1)
+
+        # Footer HUD with Result
         if last_result:
             decision = last_result["decision"]
-            color = (0, 200, 0) if decision == "PASS" else (0, 0, 220)
-            score_text = f"Result: {decision} | Score: {last_result['anomaly_score']:.4f} / Thresh: {last_result['threshold']:.4f} ({last_result['processing_time_ms']}ms)"
-            cv2.rectangle(display_frame, (0, h - 45), (w, h), (20, 20, 20), -1)
-            cv2.putText(display_frame, score_text, (10, h - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
+            color = (0, 210, 0) if decision == "PASS" else (0, 0, 230)
+            score_text = f"DECISION: [{decision}] | Score: {last_result['anomaly_score']:.2f} (Thresh: {last_result['threshold']:.1f}) | {last_result['processing_time_ms']}ms"
+            cv2.rectangle(display_frame, (0, h - 45), (w, h), (15, 15, 15), -1)
+            cv2.putText(display_frame, score_text, (12, h - 16), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
 
         cv2.imshow("VisionQC Live Inspection Stream", display_frame)
 
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q') or key == 27:  # 'q' or ESC
             break
+        elif key == ord('r') or key == ord('R'):
+            use_roi = not use_roi
+            print(f"Inspection ROI Mode: {'ENABLED (Focus on Target Zone)' if use_roi else 'DISABLED (Full Frame)'}")
+        elif key in (ord('+'), ord('=')):
+            threshold += 2.0
+            print(f"Threshold adjusted to: {threshold:.1f}")
+        elif key in (ord('-'), ord('_')):
+            threshold = max(5.0, threshold - 2.0)
+            print(f"Threshold adjusted to: {threshold:.1f}")
         elif key == 32:  # SPACE bar: trigger inspection
             print("\nTriggering inspection on current frame...")
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            inspect_target = frame[y1:y2, x1:x2] if use_roi else frame
+            rgb_frame = cv2.cvtColor(inspect_target, cv2.COLOR_BGR2RGB)
             pil_img = Image.fromarray(rgb_frame)
 
             result = inference_service.inspect(
@@ -89,7 +126,7 @@ def run_webcam_inspection(
             )
             last_result = result
 
-            print(f"-> Decision: [{result['decision']}] | Score: {result['anomaly_score']:.5f} | Time: {result['processing_time_ms']}ms")
+            print(f"-> Result: [{result['decision']}] | Score: {result['anomaly_score']:.2f} / {threshold:.2f} | Time: {result['processing_time_ms']}ms")
 
             if result.get("overlay_path") and os.path.exists(result["overlay_path"]):
                 overlay_img = cv2.imread(result["overlay_path"])

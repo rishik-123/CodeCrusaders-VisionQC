@@ -912,9 +912,19 @@ app.post("/api/copilot/chat", requireAuth, async (req, res) => {
       ? db.prepare(`SELECT role, content FROM copilot_messages WHERE conversation_id = ? ORDER BY id DESC LIMIT 20`)
         .all(conversation.id).reverse()
       : [];
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    if (typeof res.flushHeaders === "function") res.flushHeaders();
+
     const assistantMessage = await generateInspectorResponse({
       history: [...priorMessages, { role: "user", content: message }],
       context,
+      onChunk: (visibleContent) => {
+        res.write(`data: ${JSON.stringify({ type: "chunk", content: visibleContent })}\n\n`);
+        if (typeof res.flush === "function") res.flush();
+      },
     });
 
     const conversationId = conversation?.id || randomUUID();
@@ -934,15 +944,27 @@ app.post("/api/copilot/chat", requireAuth, async (req, res) => {
         .run(conversationId, userId);
     });
     persist();
-    return res.json({
+
+    res.write(`data: ${JSON.stringify({
+      type: "done",
       success: true,
       conversationId,
       title,
       productId: requestedProductId,
       model: ollamaConfig.model,
       message: { role: "assistant", content: assistantMessage },
-    });
+    })}\n\n`);
+    return res.end();
   } catch (error) {
+    if (res.headersSent) {
+      if (error instanceof OllamaError) {
+        res.write(`data: ${JSON.stringify({ type: "error", success: false, status: error.status, code: error.code, message: error.message })}\n\n`);
+      } else {
+        console.error("Copilot chat stream error:", error);
+        res.write(`data: ${JSON.stringify({ type: "error", success: false, status: 500, message: "Unable to process your Copilot request" })}\n\n`);
+      }
+      return res.end();
+    }
     if (error instanceof OllamaError) {
       return res.status(error.status).json({ success: false, code: error.code, message: error.message });
     }

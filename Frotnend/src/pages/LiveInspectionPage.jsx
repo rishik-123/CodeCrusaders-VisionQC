@@ -3,13 +3,11 @@ import InspectionPanel from '../components/inspection/InspectionPanel';
 
 export default function LiveInspectionPage() {
   return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Live Inspection' }]} />
-      <div className="page-title">
-        <h1>Live Product Inspection</h1>
+    <>
+      <Breadcrumbs title="Live Product Inspection" trail={['Inspection']} />
+      <div className="page-body">
+        <InspectionPanel />
       </div>
-
-      <InspectionPanel />
-    </div>
+    </>
   );
 }

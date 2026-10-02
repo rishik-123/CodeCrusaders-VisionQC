@@ -38,7 +38,70 @@ export const dashboardApi = {
 
 export const copilotApi = {
   status: () => apiRequest('/api/copilot/status'),
-  chat: (data) => apiRequest('/api/copilot/chat', { method: 'POST', body: JSON.stringify(data) }),
+  chat: async (data, onChunk) => {
+    const response = await fetch(`${API_BASE_URL}/api/copilot/chat`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      const error = new Error(payload.message || 'Unable to complete the request.');
+      error.status = response.status;
+      error.code = payload.code;
+      error.payload = payload;
+      throw error;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/event-stream') && !response.body) {
+      return await response.json();
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let donePayload = null;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        const jsonStr = trimmed.slice(5).trim();
+        if (!jsonStr) continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.type === 'chunk') {
+            if (onChunk && typeof parsed.content === 'string') {
+              onChunk(parsed.content);
+            }
+          } else if (parsed.type === 'done') {
+            donePayload = parsed;
+          } else if (parsed.type === 'error') {
+            const error = new Error(parsed.message || 'Unable to process your Copilot request');
+            error.status = parsed.status || 500;
+            error.code = parsed.code;
+            throw error;
+          }
+        } catch (e) {
+          if (e.status || e.code) throw e;
+        }
+      }
+    }
+
+    if (!donePayload) {
+      throw new Error('Streaming response ended unexpectedly.');
+    }
+    return donePayload;
+  },
   conversations: () => apiRequest('/api/copilot/conversations'),
   conversation: (id) => apiRequest(`/api/copilot/conversations/${encodeURIComponent(id)}`),
   deleteConversation: (id) => apiRequest(`/api/copilot/conversations/${encodeURIComponent(id)}`, { method: 'DELETE' }),

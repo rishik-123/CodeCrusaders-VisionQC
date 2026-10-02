@@ -78,11 +78,18 @@ export default function ChatPanel() {
     setMessages((current) => [...current, { role: 'user', content }, { role: 'assistant', content: '', pending: true }]);
     setBusy(true);
     try {
-      const response = await copilotApi.chat({
-        message: content,
-        ...(conversationId ? { conversationId } : {}),
-        productId: productId ? Number(productId) : null,
-      });
+      const response = await copilotApi.chat(
+        {
+          message: content,
+          ...(conversationId ? { conversationId } : {}),
+          productId: productId ? Number(productId) : null,
+        },
+        (chunkContent) => {
+          setMessages((current) => current.map((item) => item.pending
+            ? { ...item, content: chunkContent }
+            : item));
+        }
+      );
       setConversationId(response.conversationId);
       setMessages((current) => current.map((item) => item.pending
         ? { role: 'assistant', content: response.message.content, id: Date.now() }
@@ -180,7 +187,7 @@ export default function ChatPanel() {
           ) : messages.map((item, index) => (
             <article key={item.id || `${item.role}-${index}`} className={`copilot-message ${item.role}`}>
               <div className="copilot-message-label">{item.role === 'user' ? 'You' : 'AI Inspector'}</div>
-              <div className="copilot-message-text">{item.pending ? <span className="copilot-thinking"><i className="fas fa-circle-notch fa-spin" aria-hidden="true" /> Thinking…</span> : item.content}</div>
+              <div className="copilot-message-text">{item.pending && !item.content ? <span className="copilot-thinking"><i className="fas fa-circle-notch fa-spin" aria-hidden="true" /> Thinking…</span> : item.content}</div>
               {item.role === 'assistant' && item.content && <button className="copilot-copy" type="button" onClick={() => copyMessage(item)}>{copiedId === item.id ? 'Copied' : 'Copy response'}</button>}
             </article>
           ))}

@@ -9,13 +9,11 @@ export default function TrainingPage({ addToast }) {
   };
 
   return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Setup', path: '/setup' }, { label: 'Learn Normal (Training)' }]} />
-      <div className="page-title">
-        <h1>Learn Normal (Model Training)</h1>
+    <>
+      <Breadcrumbs title="Learn Normal (Model Training)" trail={['Setup']} />
+      <div className="page-body">
+        <TrainingPanel onComplete={handleComplete} />
       </div>
-
-      <TrainingPanel onComplete={handleComplete} />
-    </div>
+    </>
   );
 }

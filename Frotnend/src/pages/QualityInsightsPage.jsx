@@ -8,29 +8,27 @@ import {
 
 export default function QualityInsightsPage() {
   return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Analytics' }, { label: 'Quality Insights' }]} />
-      <div className="page-title">
-        <h1>Quality Insights & Drift Analysis</h1>
-      </div>
+    <>
+      <Breadcrumbs title="Quality Insights & Drift Analysis" trail={['Analytics']} />
+      <div className="page-body">
+        <div className="row">
+          <div className="col-8">
+            <QualityTrendCard />
+          </div>
+          <div className="col-4">
+            <DriftIndicator />
+          </div>
+        </div>
 
-      <div className="row">
-        <div className="col-8">
-          <QualityTrendCard />
-        </div>
-        <div className="col-4">
-          <DriftIndicator />
-        </div>
-      </div>
-
-      <div className="row">
-        <div className="col-6">
-          <FailureRegionSummary />
-        </div>
-        <div className="col-6">
-          <AnomalyClusterCard />
+        <div className="row">
+          <div className="col-6">
+            <FailureRegionSummary />
+          </div>
+          <div className="col-6">
+            <AnomalyClusterCard />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

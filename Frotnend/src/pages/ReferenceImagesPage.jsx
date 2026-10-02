@@ -370,8 +370,7 @@ export default function ReferenceImagesPage() {
 
   return <div className="reference-page">
     <ToastContainer toasts={toasts} onRemove={removeToast} />
-    <Breadcrumbs items={[{ label: 'Setup', path: '/setup' }, { label: 'Reference Images' }]} />
-    <div className="page-title"><h1>Reference Image Collection</h1></div>
+    <Breadcrumbs title="Reference Image Collection" trail={['Setup']} />
     <div className="page-body">
       <p className="reference-intro">Capture 20 normal product images to build an AI reference dataset.</p>
       <div className="row">

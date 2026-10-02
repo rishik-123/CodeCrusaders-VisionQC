@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AuthLoading } from '../components/auth/ProtectedRoute';
+import logo from '../assets/favicon.png';
 import './AuthPages.css';
 
 export default function RegisterPage() {
@@ -30,7 +31,7 @@ export default function RegisterPage() {
   }
 
   return <main className="auth-page"><section className="auth-card auth-card-register" aria-labelledby="register-title">
-    <div className="auth-brand"><span className="auth-brand-icon"><i className="fas fa-eye" /></span><span>VisionQC</span></div>
+    <div className="auth-brand"><img src={logo} alt="VisionQC Logo" className="auth-brand-logo" /><span>VisionQC</span></div>
     <h1 id="register-title">Create Account</h1><p className="auth-subtitle">Get started with VisionQC.</p>
     <form onSubmit={handleSubmit} noValidate>
       <label className="auth-label" htmlFor="username">Username</label><input className="auth-input" id="username" autoComplete="username" value={form.username} onChange={change('username')} />{errors.username && <small className="auth-error">{errors.username}</small>}

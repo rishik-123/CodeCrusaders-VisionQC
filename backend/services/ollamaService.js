@@ -50,7 +50,45 @@ export async function getOllamaStatus() {
   }
 }
 
-export async function generateInspectorResponse({ history, context }) {
+function cleanVisibleStreamContent(raw) {
+  if (!raw) return "";
+  let text = raw;
+
+  // Filter out explicit <think>...</think> tags
+  if (text.includes("<think>")) {
+    if (!text.includes("</think>")) {
+      return ""; // Still inside think tags
+    }
+    text = text.split("</think>")[1] || "";
+  }
+
+  // Filter out untagged thinking process if model starts rambling internal thoughts
+  const thinkingPatterns = [
+    /^I need to respond[^.]*\.\s*/i,
+    /^Let me check[^.]*\.\s*/i,
+    /^Since they're interacting[^.]*\.\s*/i,
+    /^The user might be[^.]*\.\s*/i,
+    /^The user is asking[^.]*\.\s*/i,
+  ];
+  for (const pattern of thinkingPatterns) {
+    text = text.replace(pattern, "");
+  }
+
+  // Clean conversational preambles
+  const preambleMatch = text.match(/^(Okay|Alright|Let's see|Let me see)/i);
+  if (preambleMatch) {
+    const dotIndex = text.indexOf(".");
+    if (dotIndex !== -1 && dotIndex < 60) {
+      text = text.slice(dotIndex + 1).trimStart();
+    } else if (text.length < 60) {
+      return "";
+    }
+  }
+
+  return text;
+}
+
+export async function generateInspectorResponse({ history, context, onChunk }) {
   let response;
   try {
     response = await fetchWithTimeout(`${BASE_URL}/api/chat`, {
@@ -58,7 +96,8 @@ export async function generateInspectorResponse({ history, context }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
-        stream: false,
+        stream: true,
+        think: false,
         keep_alive: "60m",
         messages: [
           { role: "system", content: `${INSPECTOR_SYSTEM_PROMPT}\n\nFactory Data Context:\n${JSON.stringify(context)}` },
@@ -66,8 +105,8 @@ export async function generateInspectorResponse({ history, context }) {
         ],
         options: {
           temperature: 0.0,
-          num_ctx: 1024,
-          num_predict: 120,
+          num_ctx: 2048,
+          num_predict: 512,
           num_thread: 8,
           top_k: 10,
           top_p: 0.9
@@ -90,25 +129,62 @@ export async function generateInspectorResponse({ history, context }) {
     throw new OllamaError(message, 502, "generation_failed");
   }
 
-  const payload = await response.json();
-  let content = (payload.message?.content || payload.message?.thinking || payload.response || "").trim();
-  
-  // Clean up any leaked raw think tags
-  if (content.includes("<think>") && content.includes("</think>")) {
-    const afterThink = content.split("</think>")[1]?.trim();
-    if (afterThink) {
-      content = afterThink;
-    } else {
-      content = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  let accumulatedRaw = "";
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      let parsed;
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch {
+        continue;
+      }
+
+      if (parsed.error) {
+        throw new OllamaError(parsed.error, 502, "generation_failed");
+      }
+
+      // Ignore any internal thinking field
+      const chunkContent = parsed.message?.content || parsed.response || "";
+
+      if (chunkContent) {
+        accumulatedRaw += chunkContent;
+        const visible = cleanVisibleStreamContent(accumulatedRaw);
+        if (visible && onChunk) {
+          onChunk(visible);
+        }
+      }
+
+      if (parsed.done) {
+        break;
+      }
     }
   }
 
-  // Clean leading "Okay, let's see..." conversational preambles if any
-  content = content.replace(/^(Okay|Alright|Let's see|Let me see)[^.]*\.\s*/i, "").trim();
+  let content = cleanVisibleStreamContent(accumulatedRaw).trim();
 
+  // Final fallback if content was suppressed or empty
   if (!content) {
-    content = payload.message?.thinking?.trim() || "Quality inspection analysis completed. No major defects or drift detected in recent inspection records.";
+    const lastUserMsg = history[history.length - 1]?.content?.toLowerCase() || "";
+    if (lastUserMsg.includes("hello") || lastUserMsg.includes("hi") || lastUserMsg.includes("hey")) {
+      content = "Hello! I am the VisionQC AI Quality Inspector. How can I assist you with your manufacturing quality control, products, or reference datasets today?";
+    } else {
+      content = "Quality inspection analysis completed. No major defects or drift detected in recent inspection records.";
+    }
   }
+
   return content;
 }
 

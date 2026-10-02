@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import Breadcrumbs from '../components/layout/Breadcrumbs';
 import Card from '../components/common/Card';
 import Modal from '../components/common/Modal';
@@ -13,6 +12,16 @@ export default function ProductSettingsPage({ addToast }) {
   const [threshold, setThreshold] = useState(39.39);
   const [productData, setProductData] = useState({ name: 'Bottle', id: 1, createdAt: '', modelStatus: 'READY' });
   const [retrainModal, setRetrainModal] = useState(false);
+
+  const loadSettings = useCallback((pid) => {
+    settingsApi.getSettings(pid)
+      .then((res) => {
+        if (res.current_threshold) {
+          setThreshold(Number(res.current_threshold));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     productApi.getProducts()
@@ -31,17 +40,7 @@ export default function ProductSettingsPage({ addToast }) {
         }
       })
       .catch(() => {});
-  }, []);
-
-  const loadSettings = (pid) => {
-    settingsApi.getSettings(pid)
-      .then((res) => {
-        if (res.current_threshold) {
-          setThreshold(Number(res.current_threshold));
-        }
-      })
-      .catch(() => {});
-  };
+  }, [loadSettings]);
 
   const handleProductSelect = (pid) => {
     setSelectedProductId(pid);
@@ -80,120 +79,118 @@ export default function ProductSettingsPage({ addToast }) {
   };
 
   return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Product Settings' }]} />
-      <div className="page-title">
-        <h1>Product Settings: {productData.name}</h1>
-      </div>
-
-      <div className="row">
-        {/* Left Column */}
-        <div className="col-8">
-          <Card title="Product Information">
-            {products.length > 0 && (
-              <div className="form-group mb-16">
-                <label>Select Product</label>
-                <select
+    <>
+      <Breadcrumbs title={`Product Settings: ${productData.name}`} trail={['Setup']} />
+      <div className="page-body">
+        <div className="row">
+          {/* Left Column */}
+          <div className="col-8">
+            <Card title="Product Information">
+              {products.length > 0 && (
+                <div className="form-group mb-16">
+                  <label>Select Product</label>
+                  <select
+                    className="form-control"
+                    value={selectedProductId}
+                    onChange={(e) => handleProductSelect(Number(e.target.value))}
+                  >
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.product_name || p.name || `Product #${p.id}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Product Name</label>
+                <input
+                  type="text"
                   className="form-control"
-                  value={selectedProductId}
-                  onChange={(e) => handleProductSelect(Number(e.target.value))}
-                >
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.product_name || p.name || `Product #${p.id}`}
-                    </option>
-                  ))}
-                </select>
+                  value={productData.name}
+                  onChange={(e) => setProductData({ ...productData, name: e.target.value })}
+                />
               </div>
-            )}
-            <div className="form-group">
-              <label>Product Name</label>
-              <input
-                type="text"
-                className="form-control"
-                value={productData.name}
-                onChange={(e) => setProductData({ ...productData, name: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label>Product ID</label>
-              <input type="text" className="form-control" value={productData.id} disabled />
-            </div>
-            <div className="form-group">
-              <label>Created Date</label>
-              <input type="text" className="form-control" value={productData.createdAt} disabled />
-            </div>
-          </Card>
+              <div className="form-group">
+                <label>Product ID</label>
+                <input type="text" className="form-control" value={productData.id} disabled />
+              </div>
+              <div className="form-group">
+                <label>Created Date</label>
+                <input type="text" className="form-control" value={productData.createdAt} disabled />
+              </div>
+            </Card>
 
-          <Card title="Anomaly Sensitivity Threshold">
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-              Images with an anomaly score higher than this threshold will be flagged as FAIL.
+            <Card title="Anomaly Sensitivity Threshold">
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
+                Images with an anomaly score higher than this threshold will be flagged as FAIL.
+              </p>
+              <div className="threshold-slider" style={{ marginBottom: 20 }}>
+                <label>
+                  <span>Sensitivity Threshold</span>
+                  <strong style={{ fontSize: 16 }}>{threshold}</strong>
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="80"
+                  step="0.5"
+                  value={threshold}
+                  onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                />
+              </div>
+              <button className="btn btn-primary" onClick={handleSaveThreshold}>
+                <i className="fas fa-save"></i> Save Threshold
+              </button>
+            </Card>
+          </div>
+
+          {/* Right Column */}
+          <div className="col-4">
+            <Card title="Model Status & Actions">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div className="d-flex justify-between align-center">
+                  <span className="text-muted">Current Status</span>
+                  <Badge type={getStatusClass(productData.modelStatus).replace('badge-', '')}>
+                    {productData.modelStatus}
+                  </Badge>
+                </div>
+
+                <div className="d-flex justify-between align-center">
+                  <span className="text-muted">Active Model</span>
+                  <strong>PatchCore v1</strong>
+                </div>
+
+                <button className="btn btn-warning" onClick={() => setRetrainModal(true)}>
+                  <i className="fas fa-sync-alt"></i> Retrain Model
+                </button>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {retrainModal && (
+          <Modal
+            title="Confirm Retrain Model"
+            onClose={() => setRetrainModal(false)}
+            footer={
+              <>
+                <button className="btn btn-outline" onClick={() => setRetrainModal(false)}>
+                  Cancel
+                </button>
+                <button className="btn btn-warning" onClick={handleRetrain}>
+                  Confirm Retrain
+                </button>
+              </>
+            }
+          >
+            <p style={{ fontSize: 14 }}>
+              Are you sure you want to retrain the anomaly detection model for <strong>{productData.name}</strong> using current reference images?
             </p>
-            <div className="threshold-slider" style={{ marginBottom: 20 }}>
-              <label>
-                <span>Sensitivity Threshold</span>
-                <strong style={{ fontSize: 16 }}>{threshold}</strong>
-              </label>
-              <input
-                type="range"
-                min="10"
-                max="80"
-                step="0.5"
-                value={threshold}
-                onChange={(e) => setThreshold(parseFloat(e.target.value))}
-              />
-            </div>
-            <button className="btn btn-primary" onClick={handleSaveThreshold}>
-              <i className="fas fa-save"></i> Save Threshold
-            </button>
-          </Card>
-        </div>
-
-        {/* Right Column */}
-        <div className="col-4">
-          <Card title="Model Status & Actions">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div className="d-flex justify-between align-center">
-                <span className="text-muted">Current Status</span>
-                <Badge type={getStatusClass(productData.modelStatus).replace('badge-', '')}>
-                  {productData.modelStatus}
-                </Badge>
-              </div>
-
-              <div className="d-flex justify-between align-center">
-                <span className="text-muted">Active Model</span>
-                <strong>PatchCore v1</strong>
-              </div>
-
-              <button className="btn btn-warning" onClick={() => setRetrainModal(true)}>
-                <i className="fas fa-sync-alt"></i> Retrain Model
-              </button>
-            </div>
-          </Card>
-        </div>
+          </Modal>
+        )}
       </div>
-
-      {retrainModal && (
-        <Modal
-          title="Confirm Retrain Model"
-          onClose={() => setRetrainModal(false)}
-          footer={
-            <>
-              <button className="btn btn-outline" onClick={() => setRetrainModal(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-warning" onClick={handleRetrain}>
-                Confirm Retrain
-              </button>
-            </>
-          }
-        >
-          <p style={{ fontSize: 14 }}>
-            Are you sure you want to retrain the anomaly detection model for <strong>{productData.name}</strong> using current reference images?
-          </p>
-        </Modal>
-      )}
-    </div>
+    </>
   );
 }
 

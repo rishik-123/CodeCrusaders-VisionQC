@@ -131,7 +131,7 @@ export function FailureRegionSummary() {
             <ProgressBar
               value={fr.percentage}
               max={100}
-              color={fr.percentage > 25 ? 'red' : fr.percentage > 15 ? 'orange' : ''}
+              color={fr.percentage > 25 ? '#e74c3c' : fr.percentage > 15 ? '#e16123' : 'var(--primary)'}
             />
           </div>
         ))}

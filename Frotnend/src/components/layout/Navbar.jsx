@@ -3,6 +3,7 @@ import { Dropdown, DropdownItem, DropdownDivider } from '../common/UIComponents'
 import { products } from '../../data/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/favicon.png';
 
 export default function Navbar({ onToggle }) {
   const [product, setProduct] = useState(products[0]);
@@ -17,7 +18,7 @@ export default function Navbar({ onToggle }) {
   return (
     <header className="navbar">
       <div className="navbar-brand">
-        <i className="fas fa-eye" />
+        <img src={logo} alt="VisionQC Logo" className="navbar-logo-img" />
         <span className="brand-text">VisionQC</span>
       </div>
 

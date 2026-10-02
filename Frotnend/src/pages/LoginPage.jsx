@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AuthLoading } from '../components/auth/ProtectedRoute';
+import logo from '../assets/favicon.png';
 import './AuthPages.css';
 
 export default function LoginPage() {
@@ -25,7 +26,7 @@ export default function LoginPage() {
   }
 
   return <main className="auth-page"><section className="auth-card" aria-labelledby="login-title">
-    <div className="auth-brand"><span className="auth-brand-icon"><i className="fas fa-eye" /></span><span>VisionQC</span></div>
+    <div className="auth-brand"><img src={logo} alt="VisionQC Logo" className="auth-brand-logo" /><span>VisionQC</span></div>
     <h1 id="login-title">Welcome Back</h1><p className="auth-subtitle">Sign in to your VisionQC account.</p>
     {notice && <p className="auth-notice" role="status">{notice}</p>}
     <form onSubmit={handleSubmit} noValidate>

@@ -3,13 +3,11 @@ import InspectionHistoryTable from '../components/history/InspectionHistoryTable
 
 export default function InspectionHistoryPage() {
   return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Inspection History' }]} />
-      <div className="page-title">
-        <h1>Inspection History</h1>
+    <>
+      <Breadcrumbs title="Inspection History" trail={['Inspection']} />
+      <div className="page-body">
+        <InspectionHistoryTable />
       </div>
-
-      <InspectionHistoryTable />
-    </div>
+    </>
   );
 }

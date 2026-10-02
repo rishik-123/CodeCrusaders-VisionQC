@@ -59,11 +59,22 @@ def evaluate_threshold_candidates(
         }
         candidates_history.append(metrics)
 
-        # Criteria: maximize F1, then higher recall (lower defect escapes), then higher precision
-        if (f1 > best_f1) or (abs(f1 - best_f1) < 1e-4 and r > best_metrics.get("recall", 0)):
-            best_f1 = f1
-            best_thresh = float(th)
-            best_metrics = metrics
+    # Multi-criteria optimization:
+    # 1. Maximize F1 score
+    max_f1 = max(c["f1"] for c in candidates_history)
+    f1_candidates = [c for c in candidates_history if abs(c["f1"] - max_f1) < 1e-4]
+
+    # 2. Maximize Balanced Accuracy (recall + specificity) / 2 among max F1 candidates
+    max_bal_acc = max((c["recall"] + c["specificity"]) / 2.0 for c in f1_candidates)
+    best_candidates = [
+        c for c in f1_candidates
+        if abs(((c["recall"] + c["specificity"]) / 2.0) - max_bal_acc) < 1e-4
+    ]
+
+    # 3. Select the midpoint candidate of the optimal plateau to maximize margin from both normal and defect distributions
+    mid_idx = len(best_candidates) // 2
+    best_metrics = dict(best_candidates[mid_idx])
+    best_thresh = float(best_metrics["threshold"])
 
     # Image AUROC
     try:
